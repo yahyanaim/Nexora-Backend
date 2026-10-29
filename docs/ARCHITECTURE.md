@@ -1,0 +1,98 @@
+# Nexora: architecture
+
+_How Nexora is built: the web application, the server, and how they share one set of business rules. The full requirements are in [`CAHIER_DES_CHARGES.md`](CAHIER_DES_CHARGES.md) (§5 architecture, §6 database, §15 transactions). This page says what exists today and what each part becomes._
+
+**Last update:** 29 October 2026, after phase B1a step 1.
+
+## 1. The two repositories
+
+| Repository | What it holds | State |
+|---|---|---|
+| [`yahyanaim/Nexora-Saas`](https://github.com/yahyanaim/Nexora-Saas) | The web application (Next.js 16, React 19, 9 languages): every screen, the API layer (56 modules, 362 functions) and the business rules. Runs today on demonstration data stored in the browser | Complete |
+| [`yahyanaim/Nexora-Backend`](https://github.com/yahyanaim/Nexora-Backend) (this one) | The server, the database, the jobs, and `packages/core`: the business rules shared with the web application | Phase B1a, step 1 of 4 |
+
+The contract between them is `docs/API_CONTRACT.md` in the web repository: every path, shape and error code the server must answer. A test there keeps it in step with the web application's API layer.
+
+```
+ Browser
+    │  HTTPS, same origin (decision D1)
+    ▼
+ Nexora-Saas: Next.js ──── /api/* forwarded (API_PROXY_TARGET) ────┐
+   screens, API modules                                            │
+   (demo mode: browser store)                                      ▼
+                                              Nexora-Backend: apps/server (web process)
+                                                 HTTP adapter → modules → PostgreSQL
+                                              apps/server (worker process, same image)
+                                                 jobs, scheduler, outbox → e-mail, files
+        both import ──────────────► packages/core: rules, types, money, error codes
+```
+
+## 2. Shared business rules: `packages/core`
+
+The rules are written once, in the web repository (`src/lib/workforce`, `src/lib/platform`, `src/lib/errors`), where they were built and tested with the screens.
+
+- `scripts/sync-core.mjs` copies every **pure** rule file, its types and its tests into `packages/core/src`, and rewrites `@/…` imports into relative ones. A file that reaches browser storage, the API layer, React, translations or an unknown package is left out, and so is every file that imports it. Today: 125 files (57 workforce and 12 platform rule files, types, the error catalogue, 25 test files).
+- The rule code is type-checked **without DOM or Node types**, so a browser or Node API cannot slip in. Tests may use the DOM, for example to read generated XML.
+- **CI parity check (ARC-01):** on every pull request, CI checks out the web repository's `main`, re-runs the sync with `--check`, and fails if anything differs. A rule changes in the web repository first; then `npm run sync:core -- ../Nexora-Saas` brings it here.
+- Never edit a generated file. Each one starts with a header saying where it comes from. The only hand-written files are `src/lib/id.ts` and its test.
+
+## 3. The server: `apps/server`
+
+### 3.1 Built today (B1a step 1)
+
+| Part | File | What it does | Requirements |
+|---|---|---|---|
+| Configuration | `src/config/config.ts` | The only place that reads the environment. Production refuses to start with a missing, short or example `SESSION_SECRET`, or an `APP_ORIGIN` that is not https, and lists every problem | ARC-04 |
+| HTTP application | `src/http/app.ts` | Request id (kept when well-formed), security headers, 1 MB body limit, `/health/live` and `/health/ready` (readiness checks plug in), unknown routes and errors returned as `{ code, values, requestId }` | QAL-05, SCR-04 |
+| Errors | `src/http/errors.ts` | `AppError(status, code, values)`. Codes are the web catalogue's keys; a test fails if the server uses a code the catalogue lacks | ARC-08 |
+| Entry point | `src/main.ts` | Starts the web process; on SIGTERM stops taking requests and exits within 20 s | ARC-05, QAL-13 |
+
+### 3.2 Target shape (cahier des charges §5)
+
+A **modular monolith**: one deployable server, one PostgreSQL database, no microservices, broker or cache unless a measured need appears.
+
+**Modules** (§5.3): identity, workspace, people, relations, work, time, approvals, sales, purchases, finance, analytics, files, notifications, platform, ops. A module calls another only through its application interface or the outbox (ARC-06).
+
+**Layers inside a module** (§5.2):
+
+```
+HTTP adapter      route, Zod schema, principal from the session, error codes
+Application       commands and queries, permission and record rules, unit of work, audit, outbox
+Domain            entities, state machines, invariants, rules from packages/core
+Ports             repositories, clock, ids, storage, mailer, payment provider
+Infrastructure    PostgreSQL repositories, S3 storage, e-mail adapter, job handlers
+```
+
+**Request lifecycle** (§5.5), in this order for every request:
+1. Request id, size limit, headers, rate limits.
+2. Session cookie of the route's realm; CSRF double-submit and `Origin` check on writes.
+3. The account and session are loaded and must be active.
+4. The workspace in the path is checked against the person's active memberships.
+5. The input is validated, and unknown fields are refused.
+6. The permission check runs.
+7. One transaction: tenant set for row-level security, record rules, change, audit, outbox, commit.
+8. The response is shaped by role.
+
+**Database** (§6): PostgreSQL 16, six schemas (`identity`, `tenant`, `platform`, `ops`, `audit`, `archive`), separate roles (`nx_app`, `nx_portal`, `nx_platform`, `nx_support`, `nx_dataops`…), composite tenant keys, forced row-level security, money in centimes, gap-free numbering from locked sequence rows, append-only audit.
+
+**Processes**: the same Docker image runs as the **web** process and as the **worker** process (jobs, scheduler, outbox relay).
+
+## 4. Delivery
+
+| Phase | Content | State |
+|---|---|---|
+| B1a | Repository, `packages/core`, skeleton, CI | ✅ Step 1 |
+| B1a | PostgreSQL schemas and roles, migrations, row-level security | Next |
+| B1a | Unit of work, audit, outbox, job queue, worker | Planned |
+| B1a | Guard, privilege and audit suites (exit gate) | Planned |
+| B1b–B3 | Identity, modules, money, analytics, console, operations, security tests | Planned (cahier des charges §21.2) |
+
+## 5. Commands
+
+| Command | What it does |
+|---|---|
+| `npm ci` | Install |
+| `npm run check` | Type checks and every test |
+| `npm run sync:core -- ../Nexora-Saas` | Copy the rules from a local web repository |
+| `npm run check:core -- ../Nexora-Saas` | Check they match |
+| `npm run dev -w @nexora/server` | Start the web process on port 4000 |

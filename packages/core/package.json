@@ -1,0 +1,17 @@
+{
+  "name": "@nexora/core",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Nexora business rules shared by the web application and the server (generated from Nexora-Saas by scripts/sync-core.mjs)",
+  "exports": {
+    "./*": "./src/*.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json && tsc -p tsconfig.test.json",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "jsdom": "^26.1.0"
+  }
+}
