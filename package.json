@@ -1,0 +1,19 @@
+{
+  "name": "nexora-backend",
+  "private": true,
+  "type": "module",
+  "workspaces": ["packages/*", "apps/*"],
+  "engines": { "node": ">=22" },
+  "scripts": {
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present",
+    "check": "npm run typecheck && npm test",
+    "sync:core": "node scripts/sync-core.mjs",
+    "check:core": "node scripts/sync-core.mjs --check"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "typescript": "^5.9.3",
+    "vitest": "^4.1.12"
+  }
+}
