@@ -9,6 +9,8 @@ The web application lives in `yahyanaim/Nexora-Saas`. This repository holds the 
 | File | What it is |
 |---|---|
 | [`docs/CAHIER_DES_CHARGES.md`](docs/CAHIER_DES_CHARGES.md) | The specification of the backend and database (version 2.1): architecture, data model, every requirement with its test, security plan and delivery phases |
+| [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | How Nexora is built: the two repositories, the shared rules, the server today and its target shape |
+| [`docs/AUDIT.md`](docs/AUDIT.md) | The latest audit of the front end, the API and security: checks, status of every finding, what is still not done |
 
 The API contract the server follows is `docs/API_CONTRACT.md` in the web repository.
 
