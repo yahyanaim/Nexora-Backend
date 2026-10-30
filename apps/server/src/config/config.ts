@@ -20,12 +20,18 @@ const schema = z
     LOG_LEVEL: z.enum(["fatal", "error", "warn", "info", "debug", "trace", "silent"]).default("info"),
     APP_ORIGIN: z.url().default("http://localhost:3000"),
     SESSION_SECRET: z.string().optional(),
+    /** The web or worker login user (NOINHERIT member of the nx_* group roles). */
+    DATABASE_URL: z.string().regex(/^postgres(ql)?:\/\//, "DATABASE_URL must be a postgres:// URL").optional(),
+    /** nx_owner, used only by the migration step. */
+    MIGRATION_DATABASE_URL: z.string().regex(/^postgres(ql)?:\/\//, "MIGRATION_DATABASE_URL must be a postgres:// URL").optional(),
+    DATABASE_POOL_MAX: z.coerce.number().int().min(1).max(20).default(10), // QAL-06: at most 20 per process
   })
   .superRefine((env, ctx) => {
     if (env.NODE_ENV !== "production") return
     const check = secret("SESSION_SECRET").safeParse(env.SESSION_SECRET)
     if (!check.success) for (const issue of check.error.issues) ctx.addIssue({ code: "custom", path: ["SESSION_SECRET"], message: issue.message })
     if (!env.APP_ORIGIN.startsWith("https://")) ctx.addIssue({ code: "custom", path: ["APP_ORIGIN"], message: "APP_ORIGIN must use https in production" })
+    if (!env.DATABASE_URL) ctx.addIssue({ code: "custom", path: ["DATABASE_URL"], message: "DATABASE_URL is required in production" })
   })
 
 export type Config = z.infer<typeof schema>
