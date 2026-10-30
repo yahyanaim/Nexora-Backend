@@ -1,0 +1,298 @@
+{
+  "schema_version": 1,
+  "diagram_type": "erd",
+  "meta": {
+    "title": "Nexora database today (B1a step 2)",
+    "output": "docs/diagrams/database.html",
+    "locale": "en",
+    "quality_profile": "showcase",
+    "repository": {
+      "url": "https://github.com/yahyanaim/Nexora-Backend",
+      "provider": "github",
+      "link_mode": "web",
+      "revision": "d7f79ef7dcf210007344979b7da80b85f2184ca7"
+    }
+  },
+  "layout": {
+    "mode": "grid",
+    "gapX": 96,
+    "gapY": 40
+  },
+  "entities": [
+    {
+      "id": "principals",
+      "label": "identity.principals",
+      "sublabel": "who did it: every account or job",
+      "tag": "identity",
+      "row": 0,
+      "col": 0,
+      "attributes": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "key": "pk"
+        },
+        {
+          "name": "kind",
+          "type": "text"
+        },
+        {
+          "name": "reference",
+          "type": "text",
+          "key": "uk"
+        },
+        {
+          "name": "display_name",
+          "type": "text"
+        },
+        {
+          "name": "created_at",
+          "type": "timestamptz"
+        }
+      ],
+      "sources": [
+        {
+          "path": "apps/server/src/db/migrations/0002_identity_principals.sql",
+          "line": 3,
+          "end_line": 10,
+          "label": "CREATE TABLE"
+        }
+      ]
+    },
+    {
+      "id": "workspaces",
+      "label": "tenant.workspaces",
+      "sublabel": "one per company; forced RLS",
+      "tag": "tenant",
+      "row": 0,
+      "col": 1,
+      "attributes": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "key": "pk"
+        },
+        {
+          "name": "workspace_id",
+          "type": "uuid (= id)",
+          "key": "uk"
+        },
+        {
+          "name": "name",
+          "type": "text"
+        },
+        {
+          "name": "slug",
+          "type": "text",
+          "key": "uk"
+        },
+        {
+          "name": "country",
+          "type": "char(2)"
+        },
+        {
+          "name": "base_currency",
+          "type": "char(3)"
+        },
+        {
+          "name": "time_zone",
+          "type": "text"
+        },
+        {
+          "name": "locale",
+          "type": "text"
+        },
+        {
+          "name": "is_demo",
+          "type": "boolean"
+        },
+        {
+          "name": "deleted_at",
+          "type": "timestamptz"
+        },
+        {
+          "name": "created_at",
+          "type": "timestamptz"
+        },
+        {
+          "name": "created_by",
+          "type": "uuid",
+          "key": "fk",
+          "references": "principals.id"
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamptz"
+        },
+        {
+          "name": "updated_by",
+          "type": "uuid",
+          "key": "fk",
+          "references": "principals.id"
+        },
+        {
+          "name": "version",
+          "type": "integer"
+        }
+      ],
+      "sources": [
+        {
+          "path": "apps/server/src/db/migrations/0003_tenant_workspaces.sql",
+          "line": 3,
+          "end_line": 20,
+          "label": "CREATE TABLE"
+        },
+        {
+          "path": "apps/server/src/db/migrations/0003_tenant_workspaces.sql",
+          "line": 22,
+          "end_line": 26,
+          "label": "secured; no app insert/delete"
+        }
+      ]
+    },
+    {
+      "id": "departments",
+      "label": "tenant.departments",
+      "sublabel": "name unique per company",
+      "tag": "tenant",
+      "row": 1,
+      "col": 1,
+      "attributes": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "key": "pk"
+        },
+        {
+          "name": "workspace_id",
+          "type": "uuid",
+          "key": "fk",
+          "references": "workspaces.id"
+        },
+        {
+          "name": "name",
+          "type": "text"
+        },
+        {
+          "name": "created_at",
+          "type": "timestamptz"
+        },
+        {
+          "name": "created_by",
+          "type": "uuid",
+          "key": "fk",
+          "references": "principals.id"
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamptz"
+        },
+        {
+          "name": "updated_by",
+          "type": "uuid",
+          "key": "fk",
+          "references": "principals.id"
+        },
+        {
+          "name": "version",
+          "type": "integer"
+        }
+      ],
+      "sources": [
+        {
+          "path": "apps/server/src/db/migrations/0004_tenant_departments.sql",
+          "line": 3,
+          "end_line": 13,
+          "label": "CREATE TABLE"
+        },
+        {
+          "path": "apps/server/src/db/migrations/0004_tenant_departments.sql",
+          "line": 15,
+          "end_line": 18,
+          "label": "unique name, secured"
+        }
+      ]
+    },
+    {
+      "id": "schema_migrations",
+      "label": "ops.schema_migrations",
+      "sublabel": "applied migrations, with checksum",
+      "tag": "ops",
+      "row": 0,
+      "col": 2,
+      "attributes": [
+        {
+          "name": "version",
+          "type": "text",
+          "key": "pk"
+        },
+        {
+          "name": "name",
+          "type": "text"
+        },
+        {
+          "name": "checksum",
+          "type": "text"
+        },
+        {
+          "name": "applied_at",
+          "type": "timestamptz"
+        }
+      ],
+      "sources": [
+        {
+          "path": "apps/server/src/db/migrate.ts",
+          "line": 64,
+          "end_line": 69,
+          "label": "created by the runner"
+        }
+      ]
+    }
+  ],
+  "relationships": [
+    {
+      "id": "dept-ws",
+      "from": "departments",
+      "to": "workspaces",
+      "fromCardinality": "many",
+      "toCardinality": "one",
+      "label": "workspace_id"
+    },
+    {
+      "id": "ws-actor",
+      "from": "workspaces",
+      "to": "principals",
+      "fromCardinality": "many",
+      "toCardinality": "one",
+      "label": "created_by, updated_by"
+    },
+    {
+      "id": "dept-actor",
+      "from": "departments",
+      "to": "principals",
+      "fromCardinality": "many",
+      "toCardinality": "one",
+      "label": "created_by, updated_by"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "rose",
+      "title": "Rules on every tenant table",
+      "items": [
+        "UNIQUE (workspace_id, id): the composite tenant key",
+        "Row-level security enabled and forced: rows of the workspace set only",
+        "created_by and updated_by come from the request, never from the row",
+        "version goes up by one on every update"
+      ]
+    },
+    {
+      "dot": "cyan",
+      "title": "Schemas not used yet",
+      "items": [
+        "platform, audit and archive exist, still empty",
+        "Their tables arrive with the console, the audit trail and deletion"
+      ]
+    }
+  ]
+}

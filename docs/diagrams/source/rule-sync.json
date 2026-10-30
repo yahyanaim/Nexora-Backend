@@ -1,0 +1,284 @@
+{
+  "schema_version": 2,
+  "diagram_type": "workflow",
+  "meta": {
+    "title": "Nexora: how a rule change reaches the server",
+    "output": "docs/diagrams/rule-sync.html",
+    "locale": "en",
+    "quality_profile": "showcase",
+    "repository": {
+      "url": "https://github.com/yahyanaim/Nexora-Backend",
+      "provider": "github",
+      "link_mode": "web",
+      "revision": "d7f79ef7dcf210007344979b7da80b85f2184ca7"
+    },
+    "legend": {
+      "entries": {
+        "frontend": {
+          "label": "Web repository step"
+        },
+        "backend": {
+          "label": "Backend step"
+        },
+        "security": {
+          "label": "Check or block"
+        }
+      }
+    }
+  },
+  "lanes": [
+    {
+      "id": "web",
+      "label": "Nexora-Saas (web)"
+    },
+    {
+      "id": "backend",
+      "label": "Nexora-Backend"
+    },
+    {
+      "id": "ci",
+      "label": "Backend CI"
+    },
+    {
+      "id": "stop",
+      "label": "Blocked",
+      "variant": "exception"
+    }
+  ],
+  "phases": [
+    {
+      "id": "write",
+      "label": "Write the rule",
+      "fromCol": 0,
+      "toCol": 1
+    },
+    {
+      "id": "copy",
+      "label": "Copy",
+      "fromCol": 2,
+      "toCol": 3
+    },
+    {
+      "id": "check",
+      "label": "Check and merge",
+      "fromCol": 4,
+      "toCol": 5,
+      "variant": "emphasis"
+    }
+  ],
+  "mainPath": [
+    "edit",
+    "webmerge",
+    "sync",
+    "pr",
+    "parity",
+    "tests",
+    "merged"
+  ],
+  "nodes": [
+    {
+      "id": "edit",
+      "lane": "web",
+      "col": 0,
+      "type": "frontend",
+      "label": "Change a rule",
+      "sublabel": "src/lib/workforce, tests",
+      "sources": [
+        {
+          "path": "docs/ARCHITECTURE.md",
+          "line": 32,
+          "label": "rules are written once, here"
+        }
+      ]
+    },
+    {
+      "id": "webmerge",
+      "lane": "web",
+      "col": 1,
+      "type": "frontend",
+      "label": "Merged to main",
+      "sublabel": "web CI green",
+      "sources": [
+        {
+          "path": "docs/ARCHITECTURE.md",
+          "line": 36,
+          "label": "web repository first"
+        }
+      ]
+    },
+    {
+      "id": "sync",
+      "lane": "backend",
+      "col": 2,
+      "type": "backend",
+      "label": "npm run sync:core",
+      "sublabel": "copies pure rule files",
+      "sources": [
+        {
+          "path": "scripts/sync-core.mjs",
+          "line": 1,
+          "end_line": 21,
+          "label": "what the script does"
+        },
+        {
+          "path": "scripts/sync-core.mjs",
+          "line": 31,
+          "end_line": 34,
+          "label": "seeds and exclusions"
+        }
+      ]
+    },
+    {
+      "id": "pr",
+      "lane": "backend",
+      "col": 3,
+      "type": "backend",
+      "label": "Backend pull request",
+      "sublabel": "packages/core updated",
+      "sources": [
+        {
+          "path": "packages/core/package.json",
+          "line": 6,
+          "label": "generated package"
+        }
+      ]
+    },
+    {
+      "id": "parity",
+      "lane": "ci",
+      "col": 4,
+      "type": "security",
+      "label": "Rules match the web app",
+      "sublabel": "sync --check vs web main",
+      "sources": [
+        {
+          "path": ".github/workflows/ci.yml",
+          "line": 36,
+          "end_line": 49,
+          "label": "core-parity job"
+        }
+      ]
+    },
+    {
+      "id": "tests",
+      "lane": "ci",
+      "col": 5,
+      "type": "backend",
+      "label": "Typecheck and tests",
+      "sublabel": "real PostgreSQL 16",
+      "sources": [
+        {
+          "path": ".github/workflows/ci.yml",
+          "line": 12,
+          "end_line": 34,
+          "label": "check job"
+        }
+      ]
+    },
+    {
+      "id": "merged",
+      "lane": "backend",
+      "col": 5,
+      "type": "backend",
+      "label": "Merged",
+      "sublabel": "server runs the new rule",
+      "sources": [
+        {
+          "path": "apps/server/package.json",
+          "line": 14,
+          "label": "server depends on @nexora/core"
+        }
+      ]
+    },
+    {
+      "id": "differs",
+      "lane": "stop",
+      "col": 4,
+      "type": "security",
+      "label": "Files differ",
+      "sublabel": "PR cannot merge",
+      "sources": [
+        {
+          "path": "scripts/sync-core.mjs",
+          "line": 14,
+          "end_line": 15,
+          "label": "--check exits 1"
+        }
+      ]
+    }
+  ],
+  "edges": [
+    {
+      "id": "e-edit-merge",
+      "from": "edit",
+      "to": "webmerge",
+      "label": "web PR"
+    },
+    {
+      "id": "e-merge-sync",
+      "from": "webmerge",
+      "to": "sync",
+      "label": "pull rules",
+      "variant": "emphasis"
+    },
+    {
+      "id": "e-sync-pr",
+      "from": "sync",
+      "to": "pr"
+    },
+    {
+      "id": "e-pr-parity",
+      "from": "pr",
+      "to": "parity",
+      "label": "CI",
+      "variant": "emphasis"
+    },
+    {
+      "id": "e-parity-tests",
+      "from": "parity",
+      "to": "tests",
+      "label": "identical"
+    },
+    {
+      "id": "e-tests-merged",
+      "from": "tests",
+      "to": "merged",
+      "label": "green",
+      "variant": "emphasis"
+    },
+    {
+      "id": "e-parity-differs",
+      "from": "parity",
+      "to": "differs",
+      "label": "differs",
+      "variant": "security",
+      "role": "error"
+    },
+    {
+      "id": "e-differs-sync",
+      "from": "differs",
+      "to": "sync",
+      "label": "sync again",
+      "variant": "dashed",
+      "role": "return"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "One source of truth",
+      "items": [
+        "Rules change only in Nexora-Saas, where the screens test them",
+        "Generated files carry a header: never edit them in the backend"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "What the check blocks",
+      "items": [
+        "A rule changed in one repository and not the other",
+        "A hand edit of a generated file in packages/core"
+      ]
+    }
+  ]
+}

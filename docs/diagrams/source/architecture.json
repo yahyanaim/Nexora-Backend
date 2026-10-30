@@ -1,0 +1,303 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "Nexora: how a request reaches the database (built through B1a step 2)",
+    "output": "docs/diagrams/architecture.html",
+    "locale": "en",
+    "quality_profile": "showcase",
+    "repository": {
+      "url": "https://github.com/yahyanaim/Nexora-Backend",
+      "provider": "github",
+      "link_mode": "web",
+      "revision": "d7f79ef7dcf210007344979b7da80b85f2184ca7"
+    }
+  },
+  "components": [
+    {
+      "id": "users",
+      "type": "external",
+      "label": "Company users",
+      "sublabel": "browser",
+      "pos": [
+        40,
+        50
+      ],
+      "size": [
+        120,
+        64
+      ],
+      "sources": [
+        {
+          "path": "docs/ARCHITECTURE.md",
+          "line": 16,
+          "end_line": 19,
+          "label": "browser, same origin"
+        }
+      ]
+    },
+    {
+      "id": "web",
+      "type": "frontend",
+      "label": "Nexora-Saas web app",
+      "sublabel": "Next.js screens, API modules",
+      "pos": [
+        220,
+        50
+      ],
+      "size": [
+        150,
+        64
+      ],
+      "sources": [
+        {
+          "path": "docs/ARCHITECTURE.md",
+          "line": 11,
+          "label": "web repository"
+        },
+        {
+          "path": "docs/CAHIER_DES_CHARGES.md",
+          "line": 444,
+          "label": "API_PROXY_TARGET (D1)"
+        }
+      ]
+    },
+    {
+      "id": "server",
+      "type": "backend",
+      "label": "Web process",
+      "sublabel": "apps/server, Express",
+      "tag": "health, error codes",
+      "pos": [
+        520,
+        50
+      ],
+      "size": [
+        150,
+        64
+      ],
+      "sources": [
+        {
+          "path": "apps/server/src/main.ts",
+          "line": 19,
+          "end_line": 21,
+          "label": "pool, readiness, listen"
+        },
+        {
+          "path": "apps/server/src/http/app.ts",
+          "line": 21,
+          "end_line": 76,
+          "label": "createApp"
+        },
+        {
+          "path": "apps/server/src/config/config.ts",
+          "line": 28,
+          "end_line": 35,
+          "label": "production refuses weak config"
+        }
+      ]
+    },
+    {
+      "id": "session",
+      "type": "security",
+      "label": "Unit of work",
+      "sublabel": "SET LOCAL ROLE + context",
+      "pos": [
+        790,
+        50
+      ],
+      "size": [
+        150,
+        64
+      ],
+      "sources": [
+        {
+          "path": "apps/server/src/db/session.ts",
+          "line": 27,
+          "end_line": 47,
+          "label": "inTransaction"
+        }
+      ]
+    },
+    {
+      "id": "db",
+      "type": "database",
+      "label": "PostgreSQL 16",
+      "sublabel": "6 schemas, forced RLS",
+      "pos": [
+        1060,
+        50
+      ],
+      "size": [
+        150,
+        64
+      ],
+      "sources": [
+        {
+          "path": "apps/server/src/db/migrations/0001_foundation.sql",
+          "line": 23,
+          "end_line": 28,
+          "label": "six schemas"
+        },
+        {
+          "path": "apps/server/src/db/migrations/0001_foundation.sql",
+          "line": 98,
+          "end_line": 109,
+          "label": "secure_tenant_table"
+        },
+        {
+          "path": "apps/server/src/db/migrations/0004_tenant_departments.sql",
+          "line": 1,
+          "end_line": 18,
+          "label": "first business table"
+        }
+      ]
+    },
+    {
+      "id": "core",
+      "type": "backend",
+      "label": "packages/core",
+      "sublabel": "shared business rules",
+      "pos": [
+        420,
+        230
+      ],
+      "size": [
+        150,
+        64
+      ],
+      "sources": [
+        {
+          "path": "packages/core/package.json",
+          "line": 1,
+          "end_line": 9,
+          "label": "@nexora/core"
+        },
+        {
+          "path": "scripts/sync-core.mjs",
+          "line": 31,
+          "end_line": 34,
+          "label": "what is copied"
+        }
+      ]
+    },
+    {
+      "id": "migrate",
+      "type": "backend",
+      "label": "Migration step",
+      "sublabel": "npm run db:migrate",
+      "tag": "advisory lock",
+      "pos": [
+        790,
+        230
+      ],
+      "size": [
+        150,
+        64
+      ],
+      "sources": [
+        {
+          "path": "apps/server/src/db/migrate.ts",
+          "line": 56,
+          "end_line": 101,
+          "label": "migrate()"
+        },
+        {
+          "path": "apps/server/package.json",
+          "line": 11,
+          "label": "db:migrate script"
+        }
+      ]
+    }
+  ],
+  "boundaries": [
+    {
+      "kind": "region",
+      "label": "Nexora-Backend",
+      "wraps": [
+        "server",
+        "session",
+        "core",
+        "migrate"
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "users-web",
+      "from": "users",
+      "to": "web",
+      "label": "HTTPS",
+      "variant": "emphasis"
+    },
+    {
+      "id": "web-server",
+      "from": "web",
+      "to": "server",
+      "label": "/api/* same origin",
+      "variant": "emphasis"
+    },
+    {
+      "id": "server-session",
+      "from": "server",
+      "to": "session",
+      "label": "inTransaction"
+    },
+    {
+      "id": "session-db",
+      "from": "session",
+      "to": "db",
+      "label": "SQL as nx_app",
+      "variant": "security"
+    },
+    {
+      "id": "web-core",
+      "from": "web",
+      "to": "core",
+      "label": "sync-core.mjs",
+      "variant": "dashed"
+    },
+    {
+      "id": "server-core",
+      "from": "server",
+      "to": "core",
+      "label": "imports"
+    },
+    {
+      "id": "migrate-db",
+      "from": "migrate",
+      "to": "db",
+      "label": "as nx_owner"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "rose",
+      "title": "Isolation in the database",
+      "items": [
+        "Every tenant table: row-level security enabled and forced",
+        "No workspace set, no row visible or writable",
+        "Login users are NOINHERIT; each transaction sets its role",
+        "The console role has no access to company tables"
+      ]
+    },
+    {
+      "dot": "cyan",
+      "title": "Shared rules",
+      "items": [
+        "Rules are written once, in Nexora-Saas",
+        "sync-core.mjs copies the pure ones into packages/core",
+        "CI fails when they differ from Nexora-Saas main"
+      ]
+    },
+    {
+      "dot": "slate",
+      "title": "Not built yet",
+      "items": [
+        "Worker process, outbox and job queue (B1a step 3)",
+        "Identity and sessions (B1b), business modules (B1c onwards)",
+        "Object storage and e-mail (B1e, B2)"
+      ]
+    }
+  ]
+}

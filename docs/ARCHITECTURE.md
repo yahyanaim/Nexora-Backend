@@ -2,6 +2,8 @@
 
 _How Nexora is built: the web application, the server, and how they share one set of business rules. The full requirements are in [`CAHIER_DES_CHARGES.md`](CAHIER_DES_CHARGES.md) (§5 architecture, §6 database, §15 transactions). This page says what exists today and what each part becomes._
 
+**Interactive diagrams** of what is built, each box linked to its source lines: [architecture](diagrams/architecture.html), [a request step by step](diagrams/request-sequence.html), [the database](diagrams/database.html), [how a rule change reaches the server](diagrams/rule-sync.html). See [`diagrams/README.md`](diagrams/README.md) for how to open and regenerate them.
+
 **Last update:** 30 October 2026, after phase B1a step 2.
 
 ## 1. The two repositories
@@ -9,7 +11,7 @@ _How Nexora is built: the web application, the server, and how they share one se
 | Repository | What it holds | State |
 |---|---|---|
 | [`yahyanaim/Nexora-Saas`](https://github.com/yahyanaim/Nexora-Saas) | The web application (Next.js 16, React 19, 9 languages): every screen, the API layer (56 modules, 362 functions) and the business rules. Runs today on demonstration data stored in the browser | Complete |
-| [`yahyanaim/Nexora-Backend`](https://github.com/yahyanaim/Nexora-Backend) (this one) | The server, the database, the jobs, and `packages/core`: the business rules shared with the web application | Phase B1a, step 1 of 4 |
+| [`yahyanaim/Nexora-Backend`](https://github.com/yahyanaim/Nexora-Backend) (this one) | The server, the database, the jobs, and `packages/core`: the business rules shared with the web application | Phase B1a, step 2 of 4 |
 
 The contract between them is `docs/API_CONTRACT.md` in the web repository: every path, shape and error code the server must answer. A test there keeps it in step with the web application's API layer.
 
