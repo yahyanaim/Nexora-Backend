@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest"
 import { ConfigError, loadConfig } from "./config"
 
 const strong = "k3J9vQ2mX7pL1zR8tW4yB6nC0dF5hG2s"
+const db = "postgresql://nx_web@db.internal:5432/nexora"
 
 describe("configuration (ARC-04)", () => {
   it("starts in development with defaults and no secret", () => {
@@ -31,7 +32,14 @@ describe("configuration (ARC-04)", () => {
   })
 
   it("accepts a correct production configuration", () => {
-    const config = loadConfig({ NODE_ENV: "production", APP_ORIGIN: "https://app.nexora.ma", SESSION_SECRET: strong, PORT: "8080" })
+    const config = loadConfig({ NODE_ENV: "production", APP_ORIGIN: "https://app.nexora.ma", SESSION_SECRET: strong, PORT: "8080", DATABASE_URL: db })
     expect(config.PORT).toBe(8080)
+    expect(config.DATABASE_POOL_MAX).toBe(10)
+  })
+
+  it("needs a database in production and checks the URL shape", () => {
+    expect(() => loadConfig({ NODE_ENV: "production", APP_ORIGIN: "https://app.nexora.ma", SESSION_SECRET: strong })).toThrow(/DATABASE_URL is required/)
+    expect(() => loadConfig({ DATABASE_URL: "mysql://x" })).toThrow(/postgres:\/\//)
+    expect(() => loadConfig({ DATABASE_POOL_MAX: "50" })).toThrow()
   })
 })
