@@ -1,6 +1,8 @@
 # Interactive diagrams
 
-Four interactive diagrams of Nexora, generated with [Archify](https://github.com/tt-a1i/archify) (Apache-2.0) from the code of this repository. Every box links to the exact source lines that prove it, pinned to commit `d7f79ef` (after B1a step 2).
+Nine interactive diagrams of Nexora, generated with [Archify](https://github.com/tt-a1i/archify) (Apache-2.0). Every box links to the exact source lines that prove it.
+
+### What is built (sources: the code, commit `d7f79ef`, after B1a step 2)
 
 | Diagram | What it shows |
 |---|---|
@@ -8,6 +10,18 @@ Four interactive diagrams of Nexora, generated with [Archify](https://github.com
 | [`request-sequence.html`](request-sequence.html) | A readiness request step by step: one transaction under a database role, applied migrations compared with the files, 200 or 503 |
 | [`database.html`](database.html) | The tables that exist today, by schema, with every column, type and key |
 | [`rule-sync.html`](rule-sync.html) | How a rule change travels from Nexora-Saas to the server, and the CI check that blocks a pull request when the two copies differ |
+
+### The target design (sources: the cahier des charges, commit `eafc61f`)
+
+Each one is the interactive version of a figure in the docs.
+
+| Diagram | Figure | What it shows |
+|---|---|---|
+| [`target-layout.html`](target-layout.html) | Cahier des charges Figure 1; ARCHITECTURE §1 | The two repositories, the web and worker processes (one image), PostgreSQL, object storage and e-mail |
+| [`module-layers.html`](module-layers.html) | Cahier des charges Figure 2; ARCHITECTURE §3.2 | The layers inside one module: HTTP adapter, application, domain, ports, infrastructure |
+| [`core-chain.html`](core-chain.html) | Cahier des charges Figure 3 | The planned tables from an hour worked to a payment received, with their keys (key columns only) |
+| [`tenant-barriers.html`](tenant-barriers.html) | Cahier des charges Figure 4 | The three barriers between a request and another company's data, and the console and support roles |
+| [`issue-invoice.html`](issue-invoice.html) | Cahier des charges Figure 5 | Issuing an invoice: one transaction with the gap-free number, then the worker builds and stores the files |
 
 ## Opening them
 
@@ -30,9 +44,9 @@ node <archify>/archify/bin/archify.mjs finalize architecture docs/diagrams/sourc
   --repo-root . --quality showcase --out-dir .archify/final-architecture --json
 ```
 
-The type is `architecture`, `sequence`, `erd` or `workflow`. A pass means:
+The type is `architecture`, `sequence`, `erd` or `workflow`. `core-chain` uses `--quality standard` (a dense table map); the others use `showcase`. A pass means:
 - the schema is valid
 - every cited source line exists at the pinned commit
 - a real browser rendered the page without overflow
 
-The `*.delivery.json` receipts written next to the HTML are not committed.
+The `*.json` receipts written next to the HTML are not committed.

@@ -1,0 +1,321 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "Nexora: the layers inside one server module",
+    "output": "docs/diagrams/module-layers.html",
+    "locale": "en",
+    "quality_profile": "showcase",
+    "repository": {
+      "url": "https://github.com/yahyanaim/Nexora-Backend",
+      "provider": "github",
+      "link_mode": "web",
+      "revision": "eafc61f049cac1caac68d7eb7ee09fe7fe2aca1a"
+    }
+  },
+  "components": [
+    {
+      "id": "request",
+      "type": "external",
+      "label": "Request",
+      "sublabel": "from the web app",
+      "pos": [
+        30,
+        50
+      ],
+      "size": [
+        120,
+        64
+      ],
+      "sources": [
+        {
+          "path": "docs/ARCHITECTURE.md",
+          "line": 70,
+          "end_line": 78,
+          "label": "request lifecycle"
+        }
+      ]
+    },
+    {
+      "id": "http",
+      "type": "frontend",
+      "label": "HTTP adapter",
+      "sublabel": "route, Zod schema, principal",
+      "pos": [
+        190,
+        50
+      ],
+      "size": [
+        150,
+        64
+      ],
+      "sources": [
+        {
+          "path": "docs/CAHIER_DES_CHARGES.md",
+          "line": 451,
+          "label": "HTTP adapter"
+        },
+        {
+          "path": "docs/ARCHITECTURE.md",
+          "line": 63,
+          "label": "HTTP adapter"
+        }
+      ]
+    },
+    {
+      "id": "app",
+      "type": "backend",
+      "label": "Application",
+      "sublabel": "commands, queries, unit of work",
+      "pos": [
+        400,
+        50
+      ],
+      "size": [
+        150,
+        64
+      ],
+      "sources": [
+        {
+          "path": "docs/CAHIER_DES_CHARGES.md",
+          "line": 453,
+          "label": "Application"
+        },
+        {
+          "path": "docs/ARCHITECTURE.md",
+          "line": 64,
+          "label": "Application"
+        }
+      ],
+      "tag": "audit, outbox"
+    },
+    {
+      "id": "domain",
+      "type": "backend",
+      "label": "Domain",
+      "sublabel": "entities, state machines, invariants",
+      "pos": [
+        610,
+        50
+      ],
+      "size": [
+        150,
+        64
+      ],
+      "sources": [
+        {
+          "path": "docs/CAHIER_DES_CHARGES.md",
+          "line": 455,
+          "label": "Domain"
+        },
+        {
+          "path": "docs/ARCHITECTURE.md",
+          "line": 65,
+          "label": "rules from packages/core"
+        }
+      ]
+    },
+    {
+      "id": "ports",
+      "type": "security",
+      "label": "Ports",
+      "sublabel": "repositories, clock, ids, mailer",
+      "pos": [
+        820,
+        50
+      ],
+      "size": [
+        150,
+        64
+      ],
+      "sources": [
+        {
+          "path": "docs/CAHIER_DES_CHARGES.md",
+          "line": 457,
+          "label": "Ports"
+        },
+        {
+          "path": "docs/ARCHITECTURE.md",
+          "line": 66,
+          "label": "Ports"
+        }
+      ]
+    },
+    {
+      "id": "infra",
+      "type": "backend",
+      "label": "Infrastructure",
+      "sublabel": "Postgres repos, S3, e-mail, jobs",
+      "pos": [
+        820,
+        230
+      ],
+      "size": [
+        150,
+        64
+      ],
+      "sources": [
+        {
+          "path": "docs/CAHIER_DES_CHARGES.md",
+          "line": 458,
+          "end_line": 459,
+          "label": "implements the ports"
+        },
+        {
+          "path": "docs/ARCHITECTURE.md",
+          "line": 67,
+          "label": "Infrastructure"
+        }
+      ]
+    },
+    {
+      "id": "pg",
+      "type": "database",
+      "label": "PostgreSQL",
+      "sublabel": "tenant tables, RLS",
+      "pos": [
+        640,
+        410
+      ],
+      "size": [
+        150,
+        64
+      ],
+      "sources": [
+        {
+          "path": "docs/CAHIER_DES_CHARGES.md",
+          "line": 459,
+          "label": "Postgres repositories"
+        }
+      ]
+    },
+    {
+      "id": "s3",
+      "type": "cloud",
+      "label": "Object storage",
+      "sublabel": "files",
+      "pos": [
+        820,
+        410
+      ],
+      "size": [
+        150,
+        64
+      ],
+      "sources": [
+        {
+          "path": "docs/CAHIER_DES_CHARGES.md",
+          "line": 459,
+          "label": "S3 storage"
+        }
+      ]
+    },
+    {
+      "id": "mail",
+      "type": "external",
+      "label": "E-mail provider",
+      "sublabel": "via outbox",
+      "pos": [
+        1000,
+        410
+      ],
+      "size": [
+        150,
+        64
+      ],
+      "sources": [
+        {
+          "path": "docs/CAHIER_DES_CHARGES.md",
+          "line": 459,
+          "label": "e-mail adapter"
+        }
+      ]
+    }
+  ],
+  "boundaries": [
+    {
+      "kind": "region",
+      "label": "One module, e.g. finance",
+      "wraps": [
+        "http",
+        "app",
+        "domain",
+        "ports",
+        "infra"
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "req-http",
+      "from": "request",
+      "to": "http",
+      "label": "HTTPS",
+      "variant": "emphasis"
+    },
+    {
+      "id": "http-app",
+      "from": "http",
+      "to": "app",
+      "label": "command or query",
+      "variant": "emphasis"
+    },
+    {
+      "id": "app-domain",
+      "from": "app",
+      "to": "domain",
+      "label": "uses"
+    },
+    {
+      "id": "domain-ports",
+      "from": "domain",
+      "to": "ports",
+      "label": "depends on"
+    },
+    {
+      "id": "infra-ports",
+      "from": "infra",
+      "to": "ports",
+      "label": "implements",
+      "variant": "dashed"
+    },
+    {
+      "id": "infra-pg",
+      "from": "infra",
+      "to": "pg",
+      "label": "SQL"
+    },
+    {
+      "id": "infra-s3",
+      "from": "infra",
+      "to": "s3",
+      "label": "files"
+    },
+    {
+      "id": "infra-mail",
+      "from": "infra",
+      "to": "mail",
+      "label": "send"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "How to read it",
+      "items": [
+        "An arrow goes from a layer to what it may depend on",
+        "Infrastructure implements the ports; the domain never imports it",
+        "Modules talk only through application interfaces or the outbox"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "Modules",
+      "items": [
+        "identity, workspace, people, relations, work, time",
+        "approvals, sales, purchases, finance, analytics",
+        "files, notifications, platform, ops"
+      ]
+    }
+  ]
+}

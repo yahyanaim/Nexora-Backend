@@ -437,7 +437,7 @@ The backend is a modular monolith: one deployable server, split inside into busi
         └──────────────────────────────────────────────────────────┘              E-mail service (via outbox)
 ```
 
-_Figure 1: Repository and runtime layout. The same server image runs as the web process and as the worker process._
+_Figure 1: Repository and runtime layout. The same server image runs as the web process and as the worker process._ Interactive version: [`diagrams/target-layout.html`](diagrams/target-layout.html).
 
 - **`packages/core`** holds the rules of Table 9, the shared types, the money functions and the error codes. It has no dependency on React, Next.js, Node-only APIs or storage, so both the web application and the server import it. **[2.1]** It lives in the server repository and is published as a versioned package that the web application depends on. Until the web application switches to the package, a CI check compares the rule files of both repositories and fails when they differ.
 - **`apps/server`** holds the modules, the database migrations, the composition root and two entry points: web (HTTP) and worker (jobs and scheduler). Both are the same Docker image started with a different command.
@@ -459,7 +459,7 @@ Ports: repositories, clock, id generator, storage, mailer, payment provider
 Infrastructure: Postgres repositories, S3 storage, e-mail adapter, job handlers
 ```
 
-_Figure 2: Layers of one module. Arrows point from a layer to what it may depend on._
+_Figure 2: Layers of one module. Arrows point from a layer to what it may depend on._ Interactive version: [`diagrams/module-layers.html`](diagrams/module-layers.html).
 
 ### 5.3 Modules
 
@@ -675,7 +675,7 @@ bank_lines ──from──▶ payments ──▶ payment_allocations  ┊
                                                 ops.document_sequences
 ```
 
-_Figure 3: The core chain from an hour worked to a payment received. Every solid arrow is a composite foreign key that includes the workspace; the dotted arrow is the numbering lock of Section 15.2._
+_Figure 3: The core chain from an hour worked to a payment received. Every solid arrow is a composite foreign key that includes the workspace; the dotted arrow is the numbering lock of Section 15.2._ Interactive version: [`diagrams/core-chain.html`](diagrams/core-chain.html).
 
 ### 7.1 Identity
 
@@ -950,7 +950,7 @@ support uses a separate role
 Tenant tables with composite keys: a record can only reference records of its own workspace
 ```
 
-_Figure 4: Three barriers between a request and another company's data._
+_Figure 4: Three barriers between a request and another company's data._ Interactive version: [`diagrams/tenant-barriers.html`](diagrams/tenant-barriers.html).
 
 ### 9.1 Workspace Access States
 
@@ -1463,7 +1463,7 @@ These statements must be true at every commit. Each has a guard that makes a vio
    After commit, worker: PDF and UBL generated, stored with SHA-256, linked to the invoice
 ```
 
-_Figure 5: Issuing an invoice: one transaction, then work after commit._
+_Figure 5: Issuing an invoice: one transaction, then work after commit._ Interactive version: [`diagrams/issue-invoice.html`](diagrams/issue-invoice.html).
 
 **Allocate a bank line.** Lock the bank line (must be unmatched) and the chosen invoices in identifier order; spread the amount with `allocate`; create the payment, allocations and invoice status changes; mark the line matched; audit; commit.
 

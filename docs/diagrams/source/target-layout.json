@@ -1,0 +1,322 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "Nexora: target layout of the two repositories and the processes",
+    "output": "docs/diagrams/target-layout.html",
+    "locale": "en",
+    "quality_profile": "showcase",
+    "repository": {
+      "url": "https://github.com/yahyanaim/Nexora-Backend",
+      "provider": "github",
+      "link_mode": "web",
+      "revision": "eafc61f049cac1caac68d7eb7ee09fe7fe2aca1a"
+    }
+  },
+  "components": [
+    {
+      "id": "users",
+      "type": "external",
+      "label": "People",
+      "sublabel": "company, portal, staff",
+      "pos": [
+        30,
+        50
+      ],
+      "size": [
+        120,
+        64
+      ],
+      "sources": [
+        {
+          "path": "docs/ARCHITECTURE.md",
+          "line": 19,
+          "end_line": 21,
+          "label": "browser, HTTPS, same origin"
+        }
+      ]
+    },
+    {
+      "id": "web",
+      "type": "frontend",
+      "label": "Nexora-Saas",
+      "sublabel": "Next.js screens, API modules",
+      "pos": [
+        190,
+        50
+      ],
+      "size": [
+        150,
+        64
+      ],
+      "sources": [
+        {
+          "path": "docs/CAHIER_DES_CHARGES.md",
+          "line": 444,
+          "label": "web application (D1)"
+        },
+        {
+          "path": "docs/ARCHITECTURE.md",
+          "line": 13,
+          "label": "web repository"
+        }
+      ]
+    },
+    {
+      "id": "webproc",
+      "type": "backend",
+      "label": "Web process",
+      "sublabel": "HTTP adapter, modules",
+      "pos": [
+        580,
+        50
+      ],
+      "size": [
+        150,
+        64
+      ],
+      "sources": [
+        {
+          "path": "docs/CAHIER_DES_CHARGES.md",
+          "line": 443,
+          "label": "apps/server, web entry point"
+        },
+        {
+          "path": "docs/ARCHITECTURE.md",
+          "line": 25,
+          "end_line": 26,
+          "label": "web process"
+        }
+      ],
+      "tag": "same image"
+    },
+    {
+      "id": "db",
+      "type": "database",
+      "label": "PostgreSQL 16",
+      "sublabel": "6 schemas, forced RLS",
+      "pos": [
+        880,
+        50
+      ],
+      "size": [
+        190,
+        64
+      ],
+      "sources": [
+        {
+          "path": "docs/CAHIER_DES_CHARGES.md",
+          "line": 427,
+          "end_line": 430,
+          "label": "PostgreSQL schemas"
+        },
+        {
+          "path": "docs/CAHIER_DES_CHARGES.md",
+          "line": 546,
+          "label": "engine, schemas and roles"
+        }
+      ]
+    },
+    {
+      "id": "core",
+      "type": "backend",
+      "label": "packages/core",
+      "sublabel": "rules, types, money, error codes",
+      "pos": [
+        380,
+        230
+      ],
+      "size": [
+        150,
+        64
+      ],
+      "sources": [
+        {
+          "path": "docs/CAHIER_DES_CHARGES.md",
+          "line": 442,
+          "label": "packages/core"
+        },
+        {
+          "path": "docs/ARCHITECTURE.md",
+          "line": 29,
+          "label": "both import"
+        }
+      ]
+    },
+    {
+      "id": "worker",
+      "type": "backend",
+      "label": "Worker process",
+      "sublabel": "jobs, scheduler, outbox relay",
+      "pos": [
+        580,
+        230
+      ],
+      "size": [
+        150,
+        64
+      ],
+      "sources": [
+        {
+          "path": "docs/CAHIER_DES_CHARGES.md",
+          "line": 443,
+          "label": "worker entry point"
+        },
+        {
+          "path": "docs/ARCHITECTURE.md",
+          "line": 27,
+          "end_line": 28,
+          "label": "worker process"
+        },
+        {
+          "path": "docs/ARCHITECTURE.md",
+          "line": 82,
+          "label": "same Docker image"
+        }
+      ],
+      "tag": "same image"
+    },
+    {
+      "id": "storage",
+      "type": "cloud",
+      "label": "Object storage",
+      "sublabel": "S3-compatible, private",
+      "pos": [
+        880,
+        230
+      ],
+      "size": [
+        190,
+        64
+      ],
+      "sources": [
+        {
+          "path": "docs/CAHIER_DES_CHARGES.md",
+          "line": 433,
+          "end_line": 436,
+          "label": "object storage"
+        }
+      ]
+    },
+    {
+      "id": "email",
+      "type": "external",
+      "label": "E-mail service",
+      "sublabel": "invitations, invoices, reminders",
+      "pos": [
+        580,
+        410
+      ],
+      "size": [
+        150,
+        64
+      ],
+      "sources": [
+        {
+          "path": "docs/CAHIER_DES_CHARGES.md",
+          "line": 241,
+          "label": "sent from the outbox"
+        },
+        {
+          "path": "docs/CAHIER_DES_CHARGES.md",
+          "line": 438,
+          "label": "e-mail via outbox"
+        }
+      ]
+    }
+  ],
+  "boundaries": [
+    {
+      "kind": "region",
+      "label": "Nexora-Backend",
+      "wraps": [
+        "webproc",
+        "worker",
+        "core"
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "users-web",
+      "from": "users",
+      "to": "web",
+      "label": "HTTPS",
+      "variant": "emphasis"
+    },
+    {
+      "id": "web-webproc",
+      "from": "web",
+      "to": "webproc",
+      "label": "/api/* same origin, cookies",
+      "variant": "emphasis"
+    },
+    {
+      "id": "webproc-db",
+      "from": "webproc",
+      "to": "db",
+      "label": "one transaction per command",
+      "variant": "security"
+    },
+    {
+      "id": "worker-db",
+      "from": "worker",
+      "to": "db",
+      "label": "jobs, outbox"
+    },
+    {
+      "id": "worker-storage",
+      "from": "worker",
+      "to": "storage",
+      "label": "PDF, UBL, files"
+    },
+    {
+      "id": "worker-email",
+      "from": "worker",
+      "to": "email",
+      "label": "after commit"
+    },
+    {
+      "id": "web-core",
+      "from": "web",
+      "to": "core",
+      "label": "imports rules",
+      "variant": "dashed"
+    },
+    {
+      "id": "webproc-core",
+      "from": "webproc",
+      "to": "core",
+      "label": "imports"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "One image, two processes",
+      "items": [
+        "The web process answers HTTP requests",
+        "The worker runs jobs, the scheduler and the outbox relay",
+        "Same Docker image, started with a different command"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "Nothing sent inside a transaction",
+      "items": [
+        "A command writes outbox rows in its transaction",
+        "The worker sends e-mail and builds files after commit",
+        "A failed transaction sends nothing"
+      ]
+    },
+    {
+      "dot": "slate",
+      "title": "Built so far",
+      "items": [
+        "Web process skeleton, packages/core, migrations, RLS (B1a steps 1-2)",
+        "Worker and outbox: B1a step 3",
+        "Storage and e-mail: later phases"
+      ]
+    }
+  ]
+}

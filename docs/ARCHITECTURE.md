@@ -2,7 +2,7 @@
 
 _How Nexora is built: the web application, the server, and how they share one set of business rules. The full requirements are in [`CAHIER_DES_CHARGES.md`](CAHIER_DES_CHARGES.md) (§5 architecture, §6 database, §15 transactions). This page says what exists today and what each part becomes._
 
-**Interactive diagrams** of what is built, each box linked to its source lines: [architecture](diagrams/architecture.html), [a request step by step](diagrams/request-sequence.html), [the database](diagrams/database.html), [how a rule change reaches the server](diagrams/rule-sync.html). See [`diagrams/README.md`](diagrams/README.md) for how to open and regenerate them.
+**Interactive diagrams.** Of what is built, each box linked to its source lines: [architecture](diagrams/architecture.html), [a request step by step](diagrams/request-sequence.html), [the database](diagrams/database.html), [how a rule change reaches the server](diagrams/rule-sync.html). Of the target design, each box linked to the cahier des charges: [target layout](diagrams/target-layout.html), [layers of a module](diagrams/module-layers.html), [from an hour worked to a payment](diagrams/core-chain.html), [the three tenant barriers](diagrams/tenant-barriers.html), [issuing an invoice](diagrams/issue-invoice.html). See [`diagrams/README.md`](diagrams/README.md) for how to open and regenerate them.
 
 **Last update:** 30 October 2026, after phase B1a step 2.
 
@@ -28,6 +28,8 @@ The contract between them is `docs/API_CONTRACT.md` in the web repository: every
                                                  jobs, scheduler, outbox → e-mail, files
         both import ──────────────► packages/core: rules, types, money, error codes
 ```
+
+Interactive versions: [target layout](diagrams/target-layout.html) and [what is built today](diagrams/architecture.html).
 
 ## 2. Shared business rules: `packages/core`
 
@@ -66,6 +68,8 @@ Domain            entities, state machines, invariants, rules from packages/core
 Ports             repositories, clock, ids, storage, mailer, payment provider
 Infrastructure    PostgreSQL repositories, S3 storage, e-mail adapter, job handlers
 ```
+
+Interactive version: [layers of a module](diagrams/module-layers.html).
 
 **Request lifecycle** (§5.5), in this order for every request:
 1. Request id, size limit, headers, rate limits.
