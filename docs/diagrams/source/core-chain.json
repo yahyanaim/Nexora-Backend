@@ -1,0 +1,901 @@
+{
+  "schema_version": 1,
+  "diagram_type": "erd",
+  "meta": {
+    "title": "Nexora: from an hour worked to a payment received (planned tables)",
+    "output": "docs/diagrams/core-chain.html",
+    "locale": "en",
+    "quality_profile": "standard",
+    "repository": {
+      "url": "https://github.com/yahyanaim/Nexora-Backend",
+      "provider": "github",
+      "link_mode": "web",
+      "revision": "eafc61f049cac1caac68d7eb7ee09fe7fe2aca1a"
+    }
+  },
+  "layout": {
+    "mode": "grid",
+    "gapX": 80,
+    "gapY": 40
+  },
+  "entities": [
+    {
+      "id": "employees",
+      "label": "employees",
+      "sublabel": "who works",
+      "tag": "people",
+      "row": 0,
+      "col": 0,
+      "attributes": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "key": "pk"
+        },
+        {
+          "name": "workspace_id",
+          "type": "uuid",
+          "key": "pk"
+        },
+        {
+          "name": "name",
+          "type": "text"
+        },
+        {
+          "name": "department_id",
+          "type": "uuid"
+        },
+        {
+          "name": "status",
+          "type": "text"
+        }
+      ],
+      "sources": [
+        {
+          "path": "docs/CAHIER_DES_CHARGES.md",
+          "line": 722,
+          "label": "catalogue row"
+        }
+      ]
+    },
+    {
+      "id": "employee_rates",
+      "label": "employee_rates",
+      "sublabel": "rates by date",
+      "tag": "people",
+      "row": 1,
+      "col": 0,
+      "attributes": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "key": "pk"
+        },
+        {
+          "name": "workspace_id",
+          "type": "uuid",
+          "key": "pk"
+        },
+        {
+          "name": "employee_id",
+          "type": "uuid",
+          "key": "fk",
+          "references": "employees.id"
+        },
+        {
+          "name": "effective_from",
+          "type": "date"
+        },
+        {
+          "name": "hourly_cost_minor",
+          "type": "bigint"
+        },
+        {
+          "name": "bill_rate_minor",
+          "type": "bigint"
+        }
+      ],
+      "sources": [
+        {
+          "path": "docs/CAHIER_DES_CHARGES.md",
+          "line": 723,
+          "label": "catalogue row"
+        }
+      ]
+    },
+    {
+      "id": "projects",
+      "label": "projects",
+      "sublabel": "work for a client",
+      "tag": "work",
+      "row": 0,
+      "col": 1,
+      "attributes": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "key": "pk"
+        },
+        {
+          "name": "workspace_id",
+          "type": "uuid",
+          "key": "pk"
+        },
+        {
+          "name": "client_id",
+          "type": "uuid",
+          "key": "fk",
+          "references": "clients.id"
+        },
+        {
+          "name": "code",
+          "type": "text",
+          "key": "uk"
+        },
+        {
+          "name": "budget_type",
+          "type": "text"
+        },
+        {
+          "name": "status",
+          "type": "text"
+        }
+      ],
+      "sources": [
+        {
+          "path": "docs/CAHIER_DES_CHARGES.md",
+          "line": 756,
+          "label": "catalogue row"
+        }
+      ]
+    },
+    {
+      "id": "milestones",
+      "label": "milestones",
+      "sublabel": "steps of a project",
+      "tag": "work",
+      "row": 1,
+      "col": 1,
+      "attributes": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "key": "pk"
+        },
+        {
+          "name": "workspace_id",
+          "type": "uuid",
+          "key": "pk"
+        },
+        {
+          "name": "project_id",
+          "type": "uuid",
+          "key": "fk",
+          "references": "projects.id"
+        },
+        {
+          "name": "due_date",
+          "type": "date"
+        },
+        {
+          "name": "revenue_share",
+          "type": "numeric(5,2)"
+        }
+      ],
+      "sources": [
+        {
+          "path": "docs/CAHIER_DES_CHARGES.md",
+          "line": 761,
+          "label": "catalogue row"
+        }
+      ]
+    },
+    {
+      "id": "tasks",
+      "label": "tasks",
+      "sublabel": "things to do",
+      "tag": "work",
+      "row": 2,
+      "col": 1,
+      "attributes": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "key": "pk"
+        },
+        {
+          "name": "workspace_id",
+          "type": "uuid",
+          "key": "pk"
+        },
+        {
+          "name": "project_id",
+          "type": "uuid",
+          "key": "fk",
+          "references": "projects.id"
+        },
+        {
+          "name": "milestone_id",
+          "type": "uuid",
+          "key": "fk",
+          "references": "milestones.id"
+        },
+        {
+          "name": "number",
+          "type": "integer"
+        },
+        {
+          "name": "status",
+          "type": "text"
+        }
+      ],
+      "sources": [
+        {
+          "path": "docs/CAHIER_DES_CHARGES.md",
+          "line": 762,
+          "label": "catalogue row"
+        }
+      ]
+    },
+    {
+      "id": "time_entries",
+      "label": "time_entries",
+      "sublabel": "an hour worked",
+      "tag": "time",
+      "row": 2,
+      "col": 0,
+      "attributes": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "key": "pk"
+        },
+        {
+          "name": "workspace_id",
+          "type": "uuid",
+          "key": "pk"
+        },
+        {
+          "name": "employee_id",
+          "type": "uuid",
+          "key": "fk",
+          "references": "employees.id"
+        },
+        {
+          "name": "project_id",
+          "type": "uuid",
+          "key": "fk",
+          "references": "projects.id"
+        },
+        {
+          "name": "task_id",
+          "type": "uuid",
+          "key": "fk",
+          "references": "tasks.id"
+        },
+        {
+          "name": "date",
+          "type": "date"
+        },
+        {
+          "name": "hours",
+          "type": "numeric(6,2)"
+        },
+        {
+          "name": "status",
+          "type": "text"
+        },
+        {
+          "name": "bill_rate_minor",
+          "type": "bigint"
+        },
+        {
+          "name": "cost_rate_minor",
+          "type": "bigint"
+        }
+      ],
+      "sources": [
+        {
+          "path": "docs/CAHIER_DES_CHARGES.md",
+          "line": 783,
+          "label": "catalogue row"
+        }
+      ]
+    },
+    {
+      "id": "invoice_line_time_entries",
+      "label": "invoice_line_time_entries",
+      "sublabel": "the only hours-invoice link",
+      "tag": "billing",
+      "row": 2,
+      "col": 2,
+      "attributes": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "key": "pk"
+        },
+        {
+          "name": "workspace_id",
+          "type": "uuid",
+          "key": "pk"
+        },
+        {
+          "name": "line_id",
+          "type": "uuid",
+          "key": "fk",
+          "references": "client_invoice_lines.id"
+        },
+        {
+          "name": "time_entry_id",
+          "type": "uuid",
+          "key": "fk",
+          "references": "time_entries.id"
+        },
+        {
+          "name": "active",
+          "type": "boolean"
+        }
+      ],
+      "sources": [
+        {
+          "path": "docs/CAHIER_DES_CHARGES.md",
+          "line": 797,
+          "label": "catalogue row"
+        }
+      ]
+    },
+    {
+      "id": "client_invoice_lines",
+      "label": "client_invoice_lines",
+      "sublabel": "frozen with the invoice",
+      "tag": "billing",
+      "row": 1,
+      "col": 2,
+      "attributes": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "key": "pk"
+        },
+        {
+          "name": "workspace_id",
+          "type": "uuid",
+          "key": "pk"
+        },
+        {
+          "name": "invoice_id",
+          "type": "uuid",
+          "key": "fk",
+          "references": "client_invoices.id"
+        },
+        {
+          "name": "project_id",
+          "type": "uuid",
+          "key": "fk",
+          "references": "projects.id"
+        },
+        {
+          "name": "quantity",
+          "type": "numeric(12,3)"
+        },
+        {
+          "name": "unit_price_minor",
+          "type": "bigint"
+        },
+        {
+          "name": "line_total_minor",
+          "type": "bigint"
+        }
+      ],
+      "sources": [
+        {
+          "path": "docs/CAHIER_DES_CHARGES.md",
+          "line": 796,
+          "label": "catalogue row"
+        }
+      ]
+    },
+    {
+      "id": "client_invoices",
+      "label": "client_invoices",
+      "sublabel": "number set once, at issue",
+      "tag": "billing",
+      "row": 0,
+      "col": 2,
+      "attributes": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "key": "pk"
+        },
+        {
+          "name": "workspace_id",
+          "type": "uuid",
+          "key": "pk"
+        },
+        {
+          "name": "client_id",
+          "type": "uuid",
+          "key": "fk",
+          "references": "clients.id"
+        },
+        {
+          "name": "series",
+          "type": "text"
+        },
+        {
+          "name": "fiscal_year",
+          "type": "integer"
+        },
+        {
+          "name": "number",
+          "type": "integer"
+        },
+        {
+          "name": "status",
+          "type": "text"
+        },
+        {
+          "name": "currency",
+          "type": "char(3)"
+        },
+        {
+          "name": "total_minor",
+          "type": "bigint"
+        }
+      ],
+      "sources": [
+        {
+          "path": "docs/CAHIER_DES_CHARGES.md",
+          "line": 795,
+          "label": "catalogue row"
+        }
+      ]
+    },
+    {
+      "id": "clients",
+      "label": "clients",
+      "sublabel": "who pays",
+      "tag": "clients",
+      "row": 0,
+      "col": 3,
+      "attributes": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "key": "pk"
+        },
+        {
+          "name": "workspace_id",
+          "type": "uuid",
+          "key": "pk"
+        },
+        {
+          "name": "code",
+          "type": "text",
+          "key": "uk"
+        },
+        {
+          "name": "name",
+          "type": "text"
+        },
+        {
+          "name": "ice",
+          "type": "text"
+        },
+        {
+          "name": "currency",
+          "type": "char(3)"
+        },
+        {
+          "name": "status",
+          "type": "text"
+        }
+      ],
+      "sources": [
+        {
+          "path": "docs/CAHIER_DES_CHARGES.md",
+          "line": 737,
+          "label": "catalogue row"
+        }
+      ]
+    },
+    {
+      "id": "client_contacts",
+      "label": "client_contacts",
+      "sublabel": "people at the client",
+      "tag": "clients",
+      "row": 1,
+      "col": 3,
+      "attributes": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "key": "pk"
+        },
+        {
+          "name": "workspace_id",
+          "type": "uuid",
+          "key": "pk"
+        },
+        {
+          "name": "client_id",
+          "type": "uuid",
+          "key": "fk",
+          "references": "clients.id"
+        },
+        {
+          "name": "name",
+          "type": "text"
+        },
+        {
+          "name": "email",
+          "type": "citext"
+        },
+        {
+          "name": "is_primary",
+          "type": "boolean"
+        }
+      ],
+      "sources": [
+        {
+          "path": "docs/CAHIER_DES_CHARGES.md",
+          "line": 738,
+          "label": "catalogue row"
+        }
+      ]
+    },
+    {
+      "id": "payments",
+      "label": "payments",
+      "sublabel": "append-only",
+      "tag": "payments",
+      "row": 0,
+      "col": 4,
+      "attributes": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "key": "pk"
+        },
+        {
+          "name": "workspace_id",
+          "type": "uuid",
+          "key": "pk"
+        },
+        {
+          "name": "client_id",
+          "type": "uuid",
+          "key": "fk",
+          "references": "clients.id"
+        },
+        {
+          "name": "bank_line_id",
+          "type": "uuid",
+          "key": "fk",
+          "references": "bank_lines.id"
+        },
+        {
+          "name": "date",
+          "type": "date"
+        },
+        {
+          "name": "amount_minor",
+          "type": "bigint"
+        },
+        {
+          "name": "reverses_payment_id",
+          "type": "uuid",
+          "key": [
+            "fk",
+            "uk"
+          ],
+          "references": "payments.id"
+        }
+      ],
+      "sources": [
+        {
+          "path": "docs/CAHIER_DES_CHARGES.md",
+          "line": 799,
+          "label": "catalogue row"
+        }
+      ]
+    },
+    {
+      "id": "payment_allocations",
+      "label": "payment_allocations",
+      "sublabel": "spreads a payment",
+      "tag": "payments",
+      "row": 1,
+      "col": 4,
+      "attributes": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "key": "pk"
+        },
+        {
+          "name": "workspace_id",
+          "type": "uuid",
+          "key": "pk"
+        },
+        {
+          "name": "payment_id",
+          "type": "uuid",
+          "key": "fk",
+          "references": "payments.id"
+        },
+        {
+          "name": "invoice_id",
+          "type": "uuid",
+          "key": "fk",
+          "references": "client_invoices.id"
+        },
+        {
+          "name": "amount_minor",
+          "type": "bigint"
+        }
+      ],
+      "sources": [
+        {
+          "path": "docs/CAHIER_DES_CHARGES.md",
+          "line": 800,
+          "label": "catalogue row"
+        }
+      ]
+    },
+    {
+      "id": "bank_lines",
+      "label": "bank_lines",
+      "sublabel": "imported once",
+      "tag": "payments",
+      "row": 2,
+      "col": 4,
+      "attributes": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "key": "pk"
+        },
+        {
+          "name": "workspace_id",
+          "type": "uuid",
+          "key": "pk"
+        },
+        {
+          "name": "bank_account_id",
+          "type": "uuid"
+        },
+        {
+          "name": "date",
+          "type": "date"
+        },
+        {
+          "name": "amount_minor",
+          "type": "bigint"
+        },
+        {
+          "name": "line_key",
+          "type": "text",
+          "key": "uk"
+        },
+        {
+          "name": "status",
+          "type": "text"
+        }
+      ],
+      "sources": [
+        {
+          "path": "docs/CAHIER_DES_CHARGES.md",
+          "line": 827,
+          "label": "catalogue row"
+        }
+      ]
+    },
+    {
+      "id": "document_sequences",
+      "label": "ops.document_sequences",
+      "sublabel": "gap-free numbering",
+      "tag": "ops",
+      "row": 3,
+      "col": 2,
+      "attributes": [
+        {
+          "name": "workspace_id",
+          "type": "uuid",
+          "key": "pk"
+        },
+        {
+          "name": "series",
+          "type": "text",
+          "key": "pk"
+        },
+        {
+          "name": "fiscal_year",
+          "type": "integer",
+          "key": "pk"
+        },
+        {
+          "name": "next_value",
+          "type": "integer"
+        }
+      ],
+      "sources": [
+        {
+          "path": "docs/CAHIER_DES_CHARGES.md",
+          "line": 853,
+          "label": "catalogue row"
+        },
+        {
+          "path": "docs/CAHIER_DES_CHARGES.md",
+          "line": 1384,
+          "end_line": 1392,
+          "label": "gap-free numbering"
+        }
+      ]
+    }
+  ],
+  "relationships": [
+    {
+      "id": "rate-emp",
+      "from": "employee_rates",
+      "to": "employees",
+      "fromCardinality": "many",
+      "toCardinality": "one",
+      "label": "employee_id"
+    },
+    {
+      "id": "te-emp",
+      "from": "time_entries",
+      "to": "employees",
+      "fromCardinality": "many",
+      "toCardinality": "one",
+      "label": "by"
+    },
+    {
+      "id": "te-proj",
+      "from": "time_entries",
+      "to": "projects",
+      "fromCardinality": "many",
+      "toCardinality": "one",
+      "label": "on"
+    },
+    {
+      "id": "te-task",
+      "from": "time_entries",
+      "to": "tasks",
+      "fromCardinality": "many",
+      "toCardinality": "one",
+      "label": "task_id",
+      "toOptional": true
+    },
+    {
+      "id": "ms-proj",
+      "from": "milestones",
+      "to": "projects",
+      "fromCardinality": "many",
+      "toCardinality": "one",
+      "label": "project_id"
+    },
+    {
+      "id": "task-proj",
+      "from": "tasks",
+      "to": "projects",
+      "fromCardinality": "many",
+      "toCardinality": "one",
+      "label": "project_id"
+    },
+    {
+      "id": "proj-client",
+      "from": "projects",
+      "to": "clients",
+      "fromCardinality": "many",
+      "toCardinality": "one",
+      "label": "client_id"
+    },
+    {
+      "id": "ilte-te",
+      "from": "invoice_line_time_entries",
+      "to": "time_entries",
+      "fromCardinality": "many",
+      "toCardinality": "one",
+      "label": "time entry"
+    },
+    {
+      "id": "ilte-line",
+      "from": "invoice_line_time_entries",
+      "to": "client_invoice_lines",
+      "fromCardinality": "many",
+      "toCardinality": "one",
+      "label": "line"
+    },
+    {
+      "id": "line-inv",
+      "from": "client_invoice_lines",
+      "to": "client_invoices",
+      "fromCardinality": "many",
+      "toCardinality": "one",
+      "label": "invoice_id"
+    },
+    {
+      "id": "line-proj",
+      "from": "client_invoice_lines",
+      "to": "projects",
+      "fromCardinality": "many",
+      "toCardinality": "one",
+      "label": "for",
+      "toOptional": true
+    },
+    {
+      "id": "inv-client",
+      "from": "client_invoices",
+      "to": "clients",
+      "fromCardinality": "many",
+      "toCardinality": "one",
+      "label": "to"
+    },
+    {
+      "id": "contact-client",
+      "from": "client_contacts",
+      "to": "clients",
+      "fromCardinality": "many",
+      "toCardinality": "one",
+      "label": "client_id"
+    },
+    {
+      "id": "alloc-inv",
+      "from": "payment_allocations",
+      "to": "client_invoices",
+      "fromCardinality": "many",
+      "toCardinality": "one",
+      "label": "settles"
+    },
+    {
+      "id": "alloc-pay",
+      "from": "payment_allocations",
+      "to": "payments",
+      "fromCardinality": "many",
+      "toCardinality": "one",
+      "label": "payment_id"
+    },
+    {
+      "id": "pay-bank",
+      "from": "payments",
+      "to": "bank_lines",
+      "fromCardinality": "many",
+      "toCardinality": "one",
+      "label": "from",
+      "toOptional": true
+    },
+    {
+      "id": "inv-seq",
+      "from": "client_invoices",
+      "to": "document_sequences",
+      "fromCardinality": "many",
+      "toCardinality": "one",
+      "label": "numbered by (lock)",
+      "variant": "dashed"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "rose",
+      "title": "Every key includes the workspace",
+      "items": [
+        "Each table: UNIQUE (workspace_id, id)",
+        "Each foreign key between tenant tables includes workspace_id",
+        "A record cannot point to another company's record"
+      ]
+    },
+    {
+      "dot": "slate",
+      "title": "Planned, not built",
+      "items": [
+        "Shape from the data model catalogue (section 7)",
+        "Only key columns shown; the full list is in the catalogue",
+        "Common columns (created/updated by and at, version) omitted"
+      ]
+    }
+  ]
+}

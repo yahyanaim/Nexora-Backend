@@ -1,0 +1,279 @@
+{
+  "schema_version": 1,
+  "diagram_type": "sequence",
+  "meta": {
+    "title": "Nexora: a readiness request, one transaction under a database role",
+    "output": "docs/diagrams/request-sequence.html",
+    "locale": "en",
+    "quality_profile": "showcase",
+    "repository": {
+      "url": "https://github.com/yahyanaim/Nexora-Backend",
+      "provider": "github",
+      "link_mode": "web",
+      "revision": "d7f79ef7dcf210007344979b7da80b85f2184ca7"
+    }
+  },
+  "participants": [
+    {
+      "id": "caller",
+      "type": "external",
+      "label": "Load balancer",
+      "sublabel": "or operator",
+      "sources": [
+        {
+          "path": "apps/server/src/http/app.ts",
+          "line": 48,
+          "end_line": 56,
+          "label": "GET /health/ready"
+        }
+      ]
+    },
+    {
+      "id": "web",
+      "type": "backend",
+      "label": "Web process",
+      "sublabel": "createApp",
+      "sources": [
+        {
+          "path": "apps/server/src/http/app.ts",
+          "line": 26,
+          "end_line": 31,
+          "label": "request id"
+        },
+        {
+          "path": "apps/server/src/http/app.ts",
+          "line": 48,
+          "end_line": 56,
+          "label": "runs readiness checks"
+        }
+      ]
+    },
+    {
+      "id": "ready",
+      "type": "backend",
+      "label": "Readiness check",
+      "sublabel": "databaseReadiness",
+      "sources": [
+        {
+          "path": "apps/server/src/db/pool.ts",
+          "line": 20,
+          "end_line": 25,
+          "label": "databaseReadiness"
+        }
+      ]
+    },
+    {
+      "id": "uow",
+      "type": "security",
+      "label": "Unit of work",
+      "sublabel": "inTransaction",
+      "sources": [
+        {
+          "path": "apps/server/src/db/session.ts",
+          "line": 27,
+          "end_line": 47,
+          "label": "BEGIN, SET LOCAL, COMMIT"
+        }
+      ]
+    },
+    {
+      "id": "db",
+      "type": "database",
+      "label": "PostgreSQL",
+      "sublabel": "ops.schema_migrations",
+      "sources": [
+        {
+          "path": "apps/server/src/db/migrate.ts",
+          "line": 64,
+          "end_line": 69,
+          "label": "schema_migrations table"
+        },
+        {
+          "path": "apps/server/src/db/migrations/0001_foundation.sql",
+          "line": 49,
+          "label": "nx_readonly may read it"
+        }
+      ]
+    },
+    {
+      "id": "files",
+      "type": "backend",
+      "label": "Migration files",
+      "sublabel": "readMigrations",
+      "sources": [
+        {
+          "path": "apps/server/src/db/migrate.ts",
+          "line": 35,
+          "end_line": 47,
+          "label": "readMigrations"
+        },
+        {
+          "path": "apps/server/src/db/migrate.ts",
+          "line": 105,
+          "end_line": 109,
+          "label": "migrationsCurrent"
+        }
+      ]
+    }
+  ],
+  "segments": [
+    {
+      "from": 150,
+      "to": 230,
+      "label": "Request"
+    },
+    {
+      "from": 236,
+      "to": 545,
+      "label": "One transaction"
+    },
+    {
+      "from": 551,
+      "to": 625,
+      "label": "Answer"
+    }
+  ],
+  "messages": [
+    {
+      "id": "get-ready",
+      "from": "caller",
+      "to": "web",
+      "y": 165,
+      "label": "GET /health/ready",
+      "variant": "emphasis",
+      "note": "request id and security headers set"
+    },
+    {
+      "id": "run-checks",
+      "from": "web",
+      "to": "ready",
+      "y": 215,
+      "label": "run readiness checks"
+    },
+    {
+      "id": "open-tx",
+      "from": "ready",
+      "to": "uow",
+      "y": 250,
+      "label": "inTransaction(nx_readonly)",
+      "variant": "security"
+    },
+    {
+      "id": "begin",
+      "from": "uow",
+      "to": "db",
+      "y": 285,
+      "label": "BEGIN; SET LOCAL ROLE",
+      "variant": "security",
+      "note": "context set locally with set_config"
+    },
+    {
+      "id": "select",
+      "from": "ready",
+      "to": "db",
+      "y": 365,
+      "label": "SELECT version",
+      "variant": "default"
+    },
+    {
+      "id": "versions",
+      "from": "db",
+      "to": "ready",
+      "y": 395,
+      "label": "applied versions",
+      "variant": "return"
+    },
+    {
+      "id": "read-files",
+      "from": "ready",
+      "to": "files",
+      "y": 425,
+      "label": "list migration files"
+    },
+    {
+      "id": "file-versions",
+      "from": "files",
+      "to": "ready",
+      "y": 455,
+      "label": "file versions",
+      "variant": "return"
+    },
+    {
+      "id": "commit",
+      "from": "uow",
+      "to": "db",
+      "y": 490,
+      "label": "COMMIT",
+      "variant": "security",
+      "note": "settings vanish; connection returns clean"
+    },
+    {
+      "id": "result",
+      "from": "ready",
+      "to": "web",
+      "y": 565,
+      "label": "ok, or migrations pending",
+      "variant": "return"
+    },
+    {
+      "id": "answer",
+      "from": "web",
+      "to": "caller",
+      "y": 600,
+      "label": "200 ok / 503 unavailable",
+      "variant": "return"
+    }
+  ],
+  "activations": [
+    {
+      "participant": "web",
+      "from": 160,
+      "to": 605,
+      "type": "backend"
+    },
+    {
+      "participant": "ready",
+      "from": 210,
+      "to": 570,
+      "type": "backend"
+    },
+    {
+      "participant": "uow",
+      "from": 245,
+      "to": 495,
+      "type": "security"
+    },
+    {
+      "participant": "db",
+      "from": 280,
+      "to": 495,
+      "type": "database"
+    },
+    {
+      "participant": "files",
+      "from": 420,
+      "to": 460,
+      "type": "backend"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "rose",
+      "title": "Why a role per transaction",
+      "items": [
+        "The web login user is NOINHERIT: alone it can read nothing",
+        "Each transaction picks one role from a closed list",
+        "SET LOCAL settings disappear at commit or rollback"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "What ready means",
+      "items": [
+        "The database answers within the pool time-out",
+        "Every migration file has been applied",
+        "Otherwise 503, with no internal detail in the body"
+      ]
+    }
+  ]
+}

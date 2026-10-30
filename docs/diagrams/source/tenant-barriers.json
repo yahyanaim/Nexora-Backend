@@ -1,0 +1,322 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "Nexora: three barriers between a request and another company's data",
+    "output": "docs/diagrams/tenant-barriers.html",
+    "locale": "en",
+    "quality_profile": "showcase",
+    "repository": {
+      "url": "https://github.com/yahyanaim/Nexora-Backend",
+      "provider": "github",
+      "link_mode": "web",
+      "revision": "eafc61f049cac1caac68d7eb7ee09fe7fe2aca1a"
+    }
+  },
+  "components": [
+    {
+      "id": "member",
+      "type": "external",
+      "label": "Company request",
+      "sublabel": "session cookie",
+      "pos": [
+        30,
+        50
+      ],
+      "size": [
+        130,
+        64
+      ],
+      "sources": [
+        {
+          "path": "docs/CAHIER_DES_CHARGES.md",
+          "line": 938,
+          "end_line": 939,
+          "label": "workspace named in the path"
+        }
+      ]
+    },
+    {
+      "id": "membership",
+      "type": "security",
+      "label": "Membership check",
+      "sublabel": "workspace in path vs memberships",
+      "pos": [
+        240,
+        50
+      ],
+      "size": [
+        160,
+        64
+      ],
+      "sources": [
+        {
+          "path": "docs/CAHIER_DES_CHARGES.md",
+          "line": 938,
+          "end_line": 939,
+          "label": "never trusted from the client"
+        },
+        {
+          "path": "docs/ARCHITECTURE.md",
+          "line": 74,
+          "label": "lifecycle step 4"
+        }
+      ]
+    },
+    {
+      "id": "filter",
+      "type": "security",
+      "label": "Barrier 1: server",
+      "sublabel": "every query filters workspace_id",
+      "pos": [
+        500,
+        50
+      ],
+      "size": [
+        160,
+        64
+      ],
+      "sources": [
+        {
+          "path": "docs/CAHIER_DES_CHARGES.md",
+          "line": 941,
+          "end_line": 942,
+          "label": "barrier 1"
+        },
+        {
+          "path": "docs/CAHIER_DES_CHARGES.md",
+          "line": 981,
+          "label": "TEN-04"
+        },
+        {
+          "path": "docs/CAHIER_DES_CHARGES.md",
+          "line": 984,
+          "label": "TEN-07 tenancy guard"
+        }
+      ],
+      "tag": "tenancy guard"
+    },
+    {
+      "id": "rls",
+      "type": "security",
+      "label": "Barrier 2: RLS",
+      "sublabel": "row-level security, app.workspace_id",
+      "pos": [
+        790,
+        50
+      ],
+      "size": [
+        170,
+        64
+      ],
+      "sources": [
+        {
+          "path": "docs/CAHIER_DES_CHARGES.md",
+          "line": 944,
+          "end_line": 945,
+          "label": "barrier 2"
+        },
+        {
+          "path": "docs/CAHIER_DES_CHARGES.md",
+          "line": 619,
+          "label": "forced RLS"
+        },
+        {
+          "path": "docs/CAHIER_DES_CHARGES.md",
+          "line": 982,
+          "label": "TEN-05 SET LOCAL"
+        }
+      ]
+    },
+    {
+      "id": "tables",
+      "type": "database",
+      "label": "Tenant tables",
+      "sublabel": "composite keys with workspace_id",
+      "pos": [
+        1080,
+        50
+      ],
+      "size": [
+        160,
+        64
+      ],
+      "sources": [
+        {
+          "path": "docs/CAHIER_DES_CHARGES.md",
+          "line": 950,
+          "label": "composite keys"
+        },
+        {
+          "path": "docs/CAHIER_DES_CHARGES.md",
+          "line": 598,
+          "end_line": 600,
+          "label": "keys and integrity"
+        }
+      ]
+    },
+    {
+      "id": "console",
+      "type": "external",
+      "label": "Console request",
+      "sublabel": "Nexora staff",
+      "pos": [
+        30,
+        230
+      ],
+      "size": [
+        130,
+        64
+      ],
+      "sources": [
+        {
+          "path": "docs/CAHIER_DES_CHARGES.md",
+          "line": 947,
+          "end_line": 948,
+          "label": "console role"
+        }
+      ]
+    },
+    {
+      "id": "roles",
+      "type": "security",
+      "label": "Barrier 3: roles",
+      "sublabel": "nx_platform: no tenant privilege",
+      "pos": [
+        790,
+        230
+      ],
+      "size": [
+        170,
+        64
+      ],
+      "sources": [
+        {
+          "path": "docs/CAHIER_DES_CHARGES.md",
+          "line": 947,
+          "end_line": 948,
+          "label": "barrier 3"
+        },
+        {
+          "path": "docs/CAHIER_DES_CHARGES.md",
+          "line": 987,
+          "label": "TEN-10"
+        }
+      ]
+    },
+    {
+      "id": "support",
+      "type": "external",
+      "label": "Support session",
+      "sublabel": "approved by the company",
+      "pos": [
+        30,
+        410
+      ],
+      "size": [
+        130,
+        64
+      ],
+      "sources": [
+        {
+          "path": "docs/CAHIER_DES_CHARGES.md",
+          "line": 970,
+          "label": "support sessions"
+        },
+        {
+          "path": "docs/CAHIER_DES_CHARGES.md",
+          "line": 569,
+          "label": "nx_support, read only"
+        }
+      ]
+    }
+  ],
+  "boundaries": [
+    {
+      "kind": "region",
+      "label": "Web process",
+      "wraps": [
+        "membership",
+        "filter"
+      ]
+    },
+    {
+      "kind": "security-group",
+      "label": "PostgreSQL",
+      "wraps": [
+        "rls",
+        "roles",
+        "tables"
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "m-mem",
+      "from": "member",
+      "to": "membership",
+      "label": "request",
+      "variant": "emphasis"
+    },
+    {
+      "id": "mem-filter",
+      "from": "membership",
+      "to": "filter",
+      "label": "active member",
+      "variant": "emphasis"
+    },
+    {
+      "id": "filter-rls",
+      "from": "filter",
+      "to": "rls",
+      "label": "SQL as nx_app",
+      "variant": "security"
+    },
+    {
+      "id": "rls-tables",
+      "from": "rls",
+      "to": "tables",
+      "label": "own rows only",
+      "variant": "security"
+    },
+    {
+      "id": "console-roles",
+      "from": "console",
+      "to": "roles",
+      "label": "as nx_platform"
+    },
+    {
+      "id": "roles-tables",
+      "from": "roles",
+      "to": "tables",
+      "label": "denied / read-only",
+      "variant": "dashed"
+    },
+    {
+      "id": "support-roles",
+      "from": "support",
+      "to": "roles",
+      "label": "as nx_support"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "rose",
+      "title": "Why three barriers",
+      "items": [
+        "All companies share the same tables",
+        "One missed filter would leak data",
+        "Each barrier catches a failure of the others"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "Built so far",
+      "items": [
+        "Barrier 2: forced RLS on every tenant table (B1a step 2)",
+        "Barrier 3: separate roles, console has no tenant access",
+        "Barrier 1: tenancy guard comes with the first modules"
+      ]
+    }
+  ]
+}

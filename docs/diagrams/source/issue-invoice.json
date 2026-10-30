@@ -1,0 +1,242 @@
+{
+  "schema_version": 1,
+  "diagram_type": "sequence",
+  "meta": {
+    "title": "Nexora: issuing an invoice, one transaction then work after commit",
+    "output": "docs/diagrams/issue-invoice.html",
+    "locale": "en",
+    "quality_profile": "showcase",
+    "repository": {
+      "url": "https://github.com/yahyanaim/Nexora-Backend",
+      "provider": "github",
+      "link_mode": "web",
+      "revision": "eafc61f049cac1caac68d7eb7ee09fe7fe2aca1a"
+    }
+  },
+  "participants": [
+    {
+      "id": "member",
+      "type": "external",
+      "label": "Accountant",
+      "sublabel": "web app",
+      "sources": [
+        {
+          "path": "docs/CAHIER_DES_CHARGES.md",
+          "line": 1453,
+          "label": "issue an invoice"
+        }
+      ]
+    },
+    {
+      "id": "server",
+      "type": "backend",
+      "label": "Finance module",
+      "sublabel": "web process",
+      "sources": [
+        {
+          "path": "docs/CAHIER_DES_CHARGES.md",
+          "line": 1453,
+          "label": "the command"
+        },
+        {
+          "path": "docs/CAHIER_DES_CHARGES.md",
+          "line": 1380,
+          "end_line": 1382,
+          "label": "unit of work"
+        }
+      ]
+    },
+    {
+      "id": "db",
+      "type": "database",
+      "label": "PostgreSQL",
+      "sublabel": "invoice, sequence, outbox",
+      "sources": [
+        {
+          "path": "docs/CAHIER_DES_CHARGES.md",
+          "line": 1384,
+          "end_line": 1392,
+          "label": "gap-free numbering"
+        },
+        {
+          "path": "docs/CAHIER_DES_CHARGES.md",
+          "line": 855,
+          "label": "ops.outbox"
+        }
+      ]
+    },
+    {
+      "id": "worker",
+      "type": "backend",
+      "label": "Worker",
+      "sublabel": "outbox relay, jobs",
+      "sources": [
+        {
+          "path": "docs/CAHIER_DES_CHARGES.md",
+          "line": 1463,
+          "label": "after commit, worker"
+        },
+        {
+          "path": "docs/CAHIER_DES_CHARGES.md",
+          "line": 1317,
+          "label": "NTF-01"
+        }
+      ]
+    },
+    {
+      "id": "storage",
+      "type": "cloud",
+      "label": "Object storage",
+      "sublabel": "PDF and UBL files",
+      "sources": [
+        {
+          "path": "docs/CAHIER_DES_CHARGES.md",
+          "line": 1463,
+          "label": "stored with SHA-256"
+        }
+      ]
+    }
+  ],
+  "segments": [
+    {
+      "from": 150,
+      "to": 200,
+      "label": "Request"
+    },
+    {
+      "from": 206,
+      "to": 480,
+      "label": "One transaction"
+    },
+    {
+      "from": 486,
+      "to": 660,
+      "label": "After commit"
+    }
+  ],
+  "messages": [
+    {
+      "id": "post",
+      "from": "member",
+      "to": "server",
+      "y": 170,
+      "label": "issue, with Idempotency-Key",
+      "variant": "emphasis"
+    },
+    {
+      "id": "lock",
+      "from": "server",
+      "to": "db",
+      "y": 225,
+      "label": "check key; lock draft FOR UPDATE",
+      "variant": "security"
+    },
+    {
+      "id": "checks",
+      "from": "server",
+      "to": "db",
+      "y": 265,
+      "label": "period, identifiers, lines, rate, approval",
+      "note": "totals recomputed; a mismatch refuses"
+    },
+    {
+      "id": "number",
+      "from": "server",
+      "to": "db",
+      "y": 335,
+      "label": "lock sequence row; take number",
+      "variant": "security"
+    },
+    {
+      "id": "snapshot",
+      "from": "server",
+      "to": "db",
+      "y": 375,
+      "label": "snapshot, number; freeze hours"
+    },
+    {
+      "id": "outbox",
+      "from": "server",
+      "to": "db",
+      "y": 415,
+      "label": "audit event + outbox (PDF, UBL)"
+    },
+    {
+      "id": "commit",
+      "from": "server",
+      "to": "db",
+      "y": 455,
+      "label": "COMMIT, or ROLLBACK of everything",
+      "variant": "security"
+    },
+    {
+      "id": "answer",
+      "from": "server",
+      "to": "member",
+      "y": 505,
+      "label": "issued invoice with its number",
+      "variant": "return"
+    },
+    {
+      "id": "pick",
+      "from": "worker",
+      "to": "db",
+      "y": 545,
+      "label": "read outbox event"
+    },
+    {
+      "id": "store",
+      "from": "worker",
+      "to": "storage",
+      "y": 585,
+      "label": "PDF and UBL, SHA-256"
+    },
+    {
+      "id": "link",
+      "from": "worker",
+      "to": "db",
+      "y": 625,
+      "label": "link files to the invoice"
+    }
+  ],
+  "activations": [
+    {
+      "participant": "server",
+      "from": 165,
+      "to": 510,
+      "type": "backend"
+    },
+    {
+      "participant": "db",
+      "from": 220,
+      "to": 460,
+      "type": "database"
+    },
+    {
+      "participant": "worker",
+      "from": 540,
+      "to": 630,
+      "type": "backend"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "rose",
+      "title": "No gap, no duplicate",
+      "items": [
+        "The number comes from a locked sequence row",
+        "A rollback gives the number back with everything else",
+        "The same Idempotency-Key never issues twice"
+      ]
+    },
+    {
+      "dot": "cyan",
+      "title": "After commit",
+      "items": [
+        "Files are built by the worker, not in the request",
+        "Each file is stored with its SHA-256 hash",
+        "A failed job retries; the invoice stays issued"
+      ]
+    }
+  ]
+}

@@ -5,3 +5,7 @@ coverage/
 .env.*
 !.env.example
 *.log
+.archify/
+
+# Archify delivery receipts (regenerated with the diagrams)
+docs/diagrams/*.json

@@ -15,6 +15,8 @@ _How the PostgreSQL database is laid out, who may touch what, how it is created 
 
 Built so far (B1a step 2): `ops.schema_migrations`, `identity.principals`, `tenant.workspaces`, `tenant.departments`, and the helpers below.
 
+Interactive diagrams: [the tables built today](diagrams/database.html), [the planned chain from an hour worked to a payment](diagrams/core-chain.html), [the three barriers between companies](diagrams/tenant-barriers.html).
+
 ## 2. Roles
 
 **Group roles** (created by the first migration; cannot sign in, never superuser, never `BYPASSRLS`):
