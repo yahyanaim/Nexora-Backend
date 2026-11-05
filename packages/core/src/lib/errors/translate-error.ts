@@ -13,19 +13,25 @@ export function errorKey(message: string): { key: string; values?: Record<string
 }
 
 /**
- * The key of a backend refusal: `4xx { code: "err_…", details? }` (API audit
- * §2). A 409 without a code is a stale write, someone saved first.
+ * The key of a backend refusal: `4xx { code: "err_…", values, requestId,
+ * message? }` (API contract §2, decision E1). `values` fill the translation;
+ * the older `details` is still read while servers switch. A 409 without a code
+ * is a stale write, someone saved first.
  */
 export function serverErrorKey(err: unknown): { key: string; values?: Record<string, string> } | null {
   const response = (err as { isAxiosError?: boolean; response?: { status?: number; data?: unknown } } | null)?.response
   if (!(err as { isAxiosError?: boolean } | null)?.isAxiosError || !response) return null
-  const data = response.data as { code?: unknown; details?: unknown } | undefined
+  const data = response.data as { code?: unknown; values?: unknown; details?: unknown } | undefined
   if (typeof data?.code === "string" && data.code.startsWith("err_")) {
-    const details = data.details && typeof data.details === "object" ? data.details as Record<string, unknown> : {}
-    const values = Object.fromEntries(Object.entries(details).filter(([, v]) => typeof v === "string" || typeof v === "number").map(([k, v]) => [k, String(v)]))
+    const given = isRecord(data.values) ? data.values : isRecord(data.details) ? data.details : {}
+    const values = Object.fromEntries(Object.entries(given).filter(([, v]) => typeof v === "string" || typeof v === "number").map(([k, v]) => [k, String(v)]))
     return Object.keys(values).length ? { key: data.code, values } : { key: data.code }
   }
   return response.status === 409 ? { key: "err_conflict" } : null
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return !!value && typeof value === "object" && !Array.isArray(value)
 }
 
 type Translator = { (key: string, values?: Record<string, string | number>): string; has(key: string): boolean }
