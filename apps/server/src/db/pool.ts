@@ -4,13 +4,13 @@ import { migrationsCurrent } from "./migrate"
 import { inTransaction } from "./session"
 
 /** One pool per process (QAL-06). Errors on idle clients are logged by the caller, never crash the process. */
-export function createPool(config: Pick<Config, "DATABASE_URL" | "DATABASE_POOL_MAX">, onError: (error: Error) => void) {
+export function createPool(config: Pick<Config, "DATABASE_URL" | "DATABASE_POOL_MAX">, onError: (error: Error) => void, applicationName = "nexora-web") {
   const pool = new pg.Pool({
     connectionString: config.DATABASE_URL,
     max: config.DATABASE_POOL_MAX,
     connectionTimeoutMillis: 5_000, // a full pool answers 503 quickly instead of hanging
     idleTimeoutMillis: 30_000,
-    application_name: "nexora-web",
+    application_name: applicationName,
   })
   pool.on("error", onError)
   return pool

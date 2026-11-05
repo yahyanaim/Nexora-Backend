@@ -3,7 +3,7 @@ import { ConfigError, loadConfig } from "./config/config"
 import { createApp } from "./http/app"
 import { createPool, databaseReadiness } from "./db/pool"
 
-/** Web process entry point (ARC-05). The worker gets its own entry in phase B1a step 3. */
+/** Web process entry point (ARC-05). The worker has its own: src/worker-main.ts. */
 function main() {
   let config
   try {

@@ -7,7 +7,7 @@ import type pg from "pg"
  * and a pooled connection keeps nothing after commit. The login user is
  * NOINHERIT: outside this function it can read nothing.
  */
-export const DB_ROLES = ["nx_app", "nx_portal", "nx_platform", "nx_support", "nx_dataops", "nx_readonly"] as const
+export const DB_ROLES = ["nx_app", "nx_portal", "nx_platform", "nx_support", "nx_dataops", "nx_readonly", "nx_jobs"] as const
 export type DbRole = (typeof DB_ROLES)[number]
 
 export interface DbContext {
