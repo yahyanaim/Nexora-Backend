@@ -8,7 +8,7 @@ The web application lives in `yahyanaim/Nexora-Saas`. This repository holds the 
 
 | File | What it is |
 |---|---|
-| [`docs/CAHIER_DES_CHARGES.md`](docs/CAHIER_DES_CHARGES.md) | The specification of the backend and database (version 2.1): architecture, data model, every requirement with its test, security plan and delivery phases |
+| [`docs/CAHIER_DES_CHARGES.md`](docs/CAHIER_DES_CHARGES.md) | The specification of the backend and database (version 2.2): architecture, data model, every requirement with its test, security plan and delivery phases |
 | [`docs/DATABASE.md`](docs/DATABASE.md) | The database: schemas, roles, row-level security, adding a tenant table, migrations, bootstrap, running the database tests |
 | [`docs/diagrams/`](docs/diagrams/README.md) | Interactive diagrams: what is built (architecture, request sequence, database, rule sync) and the target design (one per figure of the docs), each box linked to its source lines |
 | [`docs/engineering/`](docs/engineering/EXECUTION_TRACKER.md) | Engineering roadmap: implementation inventory, architecture decisions, execution tracker (phase by phase) |

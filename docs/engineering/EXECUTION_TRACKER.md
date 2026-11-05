@@ -1,6 +1,6 @@
 # Nexora: execution tracker
 
-_The engineering roadmap (phases 0–8) laid onto the delivery plan of the cahier des charges (phases B1a–B3, §21.2), with every open item. One phase is approved and worked at a time; each ends with its gate, tests and an updated inventory. Last update: 5 November 2026._
+_The engineering roadmap (phases 0–8) laid onto the delivery plan of the cahier des charges (phases B1a–B3, §21.2), with every open item. One phase is approved and worked at a time; each ends with its gate, tests and an updated inventory. Last update: 5 November 2026: Phase 0 approved; decisions E1–E5 in the cahier des charges 2.2 (§1.2, §21.5)._
 
 **Legend:**
 - ✅ done
@@ -13,9 +13,9 @@ _The engineering roadmap (phases 0–8) laid onto the delivery plan of the cahie
 
 | Roadmap phase | Cahier phase | Content | Estimate | State |
 |---|---|---|---|---|
-| 0 Audit and baseline | — | This audit, inventory, decisions, tracker | 1 day | ✅ awaiting approval |
-| 1 Contract and foundation hardening | Before B1b | Error body (ADR-004), session cookies decision (ADR-007), pinned rules (ADR-003), import-rule test, contract tests | 1 week | 🔒 |
-| 2 Database, transactions, audit, workers | B1a steps 2–4 | Steps 2 and 3 built; close-out and exit gate (guard, privilege and audit suites) | 1 week left | 🔄 PR #5 open |
+| 0 Audit and baseline | — | This audit, inventory, decisions, tracker | 1 day | ✅ approved, merged (#5, Nexora-Saas #140) |
+| 1 Contract and foundation hardening | B1a step 4 | Error body (E1), session contract (E2), pinned rules (ARC-12), import-rule test, contract tests (ARC-13) | 1 week | ⏳ next, 🔒 waits for go |
+| 2 Database, transactions, audit, workers | B1a steps 2–4 | Steps 2 and 3 merged (#3, #5); close-out and exit gate (heartbeat, seal, guard, privilege and audit suites) | 0.5 week left | 🔄 |
 | 3 Identity, authentication, authorization | B1b | Sessions, sign-in, CSRF, memberships, roles, permission engine, step-up, devices | 2–3 weeks | ⬜ |
 | 4 First vertical slice | B1c (part) | Client → project → member → time → submit → approve, end to end | 2–3 weeks | ⬜ |
 | 5 Core ERP modules | B1c (rest), B1e (reporting) | Settings, people, CRM features, work features, leave, operational reports | 5–6 weeks | ⬜ |
@@ -36,13 +36,25 @@ The total agrees with the cahier (27 weeks, about 34 with 25% contingency) and w
 | `IMPLEMENTATION_INVENTORY.md`, `ARCHITECTURE_DECISIONS.md`, `EXECUTION_TRACKER.md` | ✅ |
 | Baseline tests recorded (870 front end; 42 / 69 server; 136 core) | ✅ |
 
-### Phase 1: Contract and foundation hardening 🔒
+### Phase 1: Contract and foundation hardening ⏳
+
+Done in six pull requests, in this order, each with its own tests and checks; the last one closes phase B1a.
+
+| PR | Items |
+|---|---|
+| 1 | 1.1 error body (both repositories) |
+| 2 | 1.2 session and CSRF contract (docs, both repositories) |
+| 3 | 1.3 pinned shared rules |
+| 4 | 1.4 import-rule test and 1.5 session guard tests |
+| 5 | 2.3 worker heartbeat and 2.4 audit seal |
+| 6 | 2.5 B1a exit gate and 1.6 docs |
+
 
 | # | Item | Source | Repository | Acceptance |
 |---|---|---|---|---|
 | 1.1 | Error body `{ code, values, requestId, message? }`; front end reads `values` (and `details` during the switch); contract §2 updated | H-1, ADR-004 | both | Contract test passes on both sides; translated values shown |
 | 1.2 | Session cookie names, refresh flow and CSRF header decided and written into the contract | H-2, ADR-007 | both | ADR-007 accepted; contract §2 updated (code ships in phase 3) |
-| 1.3 | `packages/core/SOURCE` with the web commit; CI parity against it; scheduled drift report | M-1, ADR-003 | backend | A web merge no longer turns backend CI red; drift reported |
+| 1.3 | `packages/core/SOURCE` with the web commit; CI parity against it; scheduled drift report | M-1, ARC-12 | backend | A web merge no longer turns backend CI red; drift reported |
 | 1.4 | Import-rule test: domain cannot import HTTP or infrastructure; modules only through their interface | M-2, ARC-06 | backend | Test fails on a forbidden import |
 | 1.5 | Two negative tests of the session context guard | L-1 | backend | Malformed id and unknown role refused |
 | 1.6 | Docs reflect the code (architecture, database, contract) | Standards | both | Reviewed |
@@ -52,8 +64,8 @@ The total agrees with the cahier (27 weeks, about 34 with 25% contingency) and w
 | # | Item | Source | State |
 |---|---|---|---|
 | 2.1 | Schemas, roles, RLS, migrations, stamps | B1a step 2 | ✅ (#3) |
-| 2.2 | Unit of work, audit trails, outbox, queue, scheduler, worker | B1a step 3 | 🔄 PR #5, CI green |
-| 2.3 | Worker heartbeat and metrics log (queue depth, oldest due, dead, outbox lag) | M-3, QAL-08, JOB-07 | ⬜ |
+| 2.2 | Unit of work, audit trails, outbox, queue, scheduler, worker | B1a step 3 | ✅ (#5) |
+| 2.3 | Worker heartbeat and metrics log (queue depth, oldest due, dead, outbox lag) | M-3, JOB-09 | ⬜ |
 | 2.4 | Audit seal and verify jobs (`audit.seals`) | M-4, TRL-05 | ⬜ |
 | 2.5 | Exit gate (B1a step 4): guard suite, privilege suite, audit secret scan (TRL-04) | Cahier B1a gate | ⬜ |
 
@@ -96,8 +108,5 @@ Planned in the cahier (§21.2) and in the roadmap. Each is broken down into item
 
 | # | Decision | Needed before |
 |---|---|---|
-| ADR-004 | Error body with `values` | Phase 1 |
-| ADR-005 | Money: keep number rules with an adapter and property tests | Phase 4 |
-| ADR-007 | Realm cookie names and refresh flow | Phase 1 |
-| ADR-008 | Vertical slice before the rest of B1c | Phase 4 |
+| ~~ADR-004, ADR-005, ADR-007, ADR-008~~ | Accepted on 5 November 2026 (E1–E4) | — |
 | OD-1 to OD-8 | Cahier open decisions (invoice cancellation, retention, region, e-mail provider, scanner, managed database, default approval rule, support write access) | The phases that use them |

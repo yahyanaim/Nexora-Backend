@@ -95,10 +95,11 @@ Interactive version: [layers of a module](diagrams/module-layers.html).
 
 | Phase | Content | State |
 |---|---|---|
+| — | Phase 0 audit and engineering roadmap ([`engineering/`](engineering/EXECUTION_TRACKER.md)); cahier des charges 2.2 | ✅ |
 | B1a | Repository, `packages/core`, skeleton, CI | ✅ Step 1 |
 | B1a | PostgreSQL schemas and roles, migrations, row-level security | ✅ Step 2 |
 | B1a | Unit of work, audit, outbox, job queue, worker | ✅ Step 3 |
-| B1a | Guard, privilege and audit suites (exit gate) | Next |
+| B1a | **[2.2]** Contract and foundation hardening; guard, privilege and audit suites (exit gate) | Next |
 | B1b–B3 | Identity, modules, money, analytics, console, operations, security tests | Planned (cahier des charges §21.2) |
 
 ## 5. Commands
