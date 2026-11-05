@@ -21,7 +21,7 @@ The API contract the server follows is `docs/API_CONTRACT.md` in the web reposit
 | Folder | What it holds |
 |---|---|
 | `packages/core` | The business rules, types and error catalogue, **generated** from the web repository by `scripts/sync-core.mjs`. Never edit them here: change the web repository, then run `npm run sync:core -- <path to Nexora-Saas>`. CI fails when they differ from the web repository's `main` |
-| `apps/server` | The server: configuration (`src/config`), HTTP application (`src/http`), database (`src/db`: migrations, runner, session, pool), entry point (`src/main.ts`) |
+| `apps/server` | The server: configuration (`src/config`), HTTP application (`src/http`), database (`src/db`: migrations, runner, session, pool, unit of work), jobs (`src/jobs`: queue, scheduler, outbox relay), worker (`src/worker`), entry points (`src/main.ts` web, `src/worker-main.ts` worker) |
 | `docs` | The specification |
 
 ## Commands
@@ -34,6 +34,7 @@ The API contract the server follows is `docs/API_CONTRACT.md` in the web reposit
 | `npm run check:core -- ../Nexora-Saas` | Check the rules match it |
 | `npm run dev -w @nexora/server` | Start the web process on port 4000 (`/health/live`, `/health/ready`) |
 | `npm run db:migrate -w @nexora/server` | Apply pending migrations (`MIGRATION_DATABASE_URL`, as `nx_owner`) |
+| `npm run worker -w @nexora/server` | Start the worker process (`DATABASE_URL` of the `nx_worker` login): relays the outbox, runs the scheduler and the jobs |
 
 Copy `.env.example` to `.env` for local settings. Production refuses to start without a strong `SESSION_SECRET` and an https `APP_ORIGIN`.
 
@@ -43,8 +44,8 @@ Copy `.env.example` to `.env` for local settings. Production refuses to start wi
 |---|---|---|
 | B1a | 1. Repository, `packages/core`, server skeleton, CI | ✅ |
 | B1a | 2. PostgreSQL schemas, roles, migrations, row-level security | ✅ |
-| B1a | 3. Unit of work, audit trail, outbox, job queue, worker | Next |
-| B1a | 4. Guard, privilege and audit test suites (exit gate) | Planned |
+| B1a | 3. Unit of work, audit trail, outbox, job queue, worker | ✅ |
+| B1a | 4. Guard, privilege and audit test suites (exit gate) | Next |
 
 ## Licence
 

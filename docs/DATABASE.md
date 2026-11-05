@@ -13,7 +13,7 @@ _How the PostgreSQL database is laid out, who may touch what, how it is created 
 | `audit` | Workspace, identity and console audit trails | Insert and read only |
 | `archive` | Accounting records kept after a workspace is deleted | Only `nx_dataops` |
 
-Built so far (B1a step 2): `ops.schema_migrations`, `identity.principals`, `tenant.workspaces`, `tenant.departments`, and the helpers below.
+Built so far: `ops.schema_migrations`, `identity.principals`, `tenant.workspaces`, `tenant.departments` and the helpers below (B1a step 2); the three audit trails, `ops.outbox`, `ops.jobs` and `ops.schedules` (B1a step 3, sections 8 and 9).
 
 Interactive diagrams: [the tables built today](diagrams/database.html), [the planned chain from an hour worked to a payment](diagrams/core-chain.html), [the three barriers between companies](diagrams/tenant-barriers.html).
 
@@ -30,6 +30,7 @@ Interactive diagrams: [the tables built today](diagrams/database.html), [the pla
 | `nx_dataops` | Export and deletion jobs | `tenant` read and delete, one workspace at a time |
 | `nx_provision` | Owns the crossing functions (§6.2) | — |
 | `nx_readonly` | Restore tests, readiness, reconciliation | `tenant` read, `ops.schema_migrations` |
+| `nx_jobs` | The worker's queue work | Every row of `ops.outbox`, `ops.jobs` and `ops.schedules`; creates `system:<job>` principals. **No tenant table**: tenant work in a job runs under `nx_app` |
 
 **Login users** (created at bootstrap, one per process kind, `NOINHERIT`): a login user is a member of the group roles it may use but has **no privilege of its own**. Each transaction runs `SET LOCAL ROLE <group role>` (see `src/db/session.ts`), so a forgotten role means "permission denied", never "too much access".
 
@@ -37,7 +38,7 @@ Interactive diagrams: [the tables built today](diagrams/database.html), [the pla
 |---|---|---|
 | `nx_owner` | — (owns every object; `CREATEROLE`) | Migration step only |
 | `nx_web` | `nx_app`, `nx_portal`, `nx_platform`, `nx_support` | Web process |
-| `nx_worker` | `nx_app`, `nx_platform`, `nx_dataops`, `nx_readonly` | Worker process |
+| `nx_worker` | `nx_app`, `nx_platform`, `nx_dataops`, `nx_readonly`, `nx_jobs` | Worker process |
 
 ## 3. Request context and row-level security
 
@@ -91,7 +92,7 @@ Then run the migrations (they create the group roles), and create the process lo
 CREATE ROLE nx_web    LOGIN NOINHERIT NOSUPERUSER NOBYPASSRLS PASSWORD '…';
 CREATE ROLE nx_worker LOGIN NOINHERIT NOSUPERUSER NOBYPASSRLS PASSWORD '…';
 GRANT nx_app, nx_portal, nx_platform, nx_support TO nx_web;
-GRANT nx_app, nx_platform, nx_dataops, nx_readonly TO nx_worker;
+GRANT nx_app, nx_platform, nx_dataops, nx_readonly, nx_jobs TO nx_worker;
 ```
 
 `DATABASE_URL` of the web process uses `nx_web`; `MIGRATION_DATABASE_URL` uses `nx_owner`.
@@ -104,3 +105,39 @@ The suites need a PostgreSQL 16 server and a superuser URL in `TEST_DATABASE_ADM
 docker run -d --name nexora-pg -e POSTGRES_PASSWORD=dev -p 5432:5432 postgres:16
 TEST_DATABASE_ADMIN_URL=postgresql://postgres:dev@localhost:5432/postgres npm test
 ```
+
+## 8. Audit trails (§16)
+
+| Trail | Holds | Who writes | Who reads |
+|---|---|---|---|
+| `audit.workspace_events` | Every action inside a company | `nx_app`, only for the request's workspace and with the request's principal as actor | `nx_app` in that workspace (owners and administrators, checked by the application); `nx_dataops` for exports |
+| `audit.identity_events` | Sign-in and account events, before a workspace is known | `nx_app`, `nx_portal`, `nx_platform` | Comes with identity (B1b) |
+| `audit.console_events` | Every staff action | `nx_platform`, with the request's principal as actor | `nx_platform` |
+
+- **Insert-only (TRL-02).** A trigger refuses `UPDATE`, `DELETE` and `TRUNCATE` for every role, the owner included, even with row-level security lifted. The retention function (TRL-06) will be the only exception; the sealing job (TRL-05) comes later.
+- **Same transaction (TRL-01).** `runUnitOfWork` (`src/db/unit-of-work.ts`) writes the event with the change: if the event cannot be written, the change does not happen.
+- **No secrets (TRL-04).** Before and after values are copied with password, token, secret, key, IBAN and card fields replaced by `[redacted]`.
+
+## 9. Outbox, jobs and schedules (§15.1, §17)
+
+| Table | What it is | Who writes |
+|---|---|---|
+| `ops.outbox` | Events written by a command, relayed after commit | `nx_app` (own workspace), `nx_platform` (no workspace), `nx_jobs` |
+| `ops.jobs` | The job queue: type, payload, workspace, status, run time, attempts, lease, last error, dedupe key | `nx_app` (own workspace), `nx_platform` (no workspace), `nx_jobs` |
+| `ops.schedules` | Recurring jobs: job type, interval, next run | Migrations; `nx_jobs` moves the next run |
+
+Company roles can add rows but never read the queue tables.
+
+**Life of a job.**
+
+| Status | Meaning | Next |
+|---|---|---|
+| `queued` | Waiting for its run time | Claimed with `FOR UPDATE SKIP LOCKED`: `running` |
+| `running` | Held by one worker until its lease ends (5 minutes by default) | `done`; or failed: `queued` again after 1, 2, 4… minutes (at most 60); or `dead` after its last attempt; lease expired: `queued` again |
+| `done` | Finished | — |
+| `dead` | Failed every attempt; shown to the operator | `queued` again after a fix (`retryDeadJob`) |
+
+- **Idempotent enqueue.** A job with a dedupe key is enqueued once, whoever enqueues it. The relay uses `outbox:<event>:<job type>`, the scheduler `schedule:<name>:<planned time>`.
+- **Fairness.** A workspace never runs two jobs of the same type at once.
+- **One scheduler.** A transaction advisory lock lets one worker enqueue the due schedules; a run missed while no worker was up is enqueued once.
+
