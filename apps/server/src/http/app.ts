@@ -1,8 +1,9 @@
 import { randomUUID } from "node:crypto"
-import express, { type ErrorRequestHandler, type RequestHandler } from "express"
+import express, { type RequestHandler } from "express"
 import type { Logger } from "pino"
 import type { Config } from "../config/config"
-import { AppError, notFound } from "./errors"
+import { errorHandler } from "./error-body"
+import { notFound } from "./errors"
 
 declare module "express-serve-static-core" {
   interface Request {
@@ -57,22 +58,6 @@ export function createApp({ logger, readiness = [] }: AppDeps) {
 
   app.use((_req, _res, next) => next(notFound()))
 
-  const errors: ErrorRequestHandler = (error, req, res, _next) => {
-    if (error instanceof AppError) {
-      res.status(error.status).json({ code: error.code, values: error.values, requestId: req.id })
-      return
-    }
-    if (error?.type === "entity.too.large") {
-      res.status(413).json({ code: "err_bodyTooLarge", values: {}, requestId: req.id })
-      return
-    }
-    if (error?.type === "entity.parse.failed") {
-      res.status(400).json({ code: "err_badRequest", values: {}, requestId: req.id })
-      return
-    }
-    logger.error({ requestId: req.id, err: error }, "unhandled error")
-    res.status(500).json({ code: "err_internal", values: {}, requestId: req.id })
-  }
-  app.use(errors)
+  app.use(errorHandler(logger))
   return app
 }
