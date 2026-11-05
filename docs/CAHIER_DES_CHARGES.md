@@ -5,17 +5,28 @@ _for every Nexora user: companies, their people, their clients and the Nexora te
 
 | | |
 |---|---|
-| **Version** | 2.1 |
-| **Reference date** | 29 October 2026 |
+| **Version** | 2.2 |
+| **Reference date** | 5 November 2026 |
 | **Status** | For review and approval |
 | **Scope** | Server, database, background jobs, files, security |
 | **Baseline** | Nexora front end after audit fixes A1–A4 and API contract v2 (`yahyanaim/Nexora-Saas`, `docs/API_CONTRACT.md`); Architecture repository (backend part) |
-| **Supersedes** | Version 2.0 of 16 October 2026 |
+| **Supersedes** | Version 2.1 of 29 October 2026 |
 | **Classification** | Confidential |
 
 > **The server decides • One transaction per action • Isolation in depth**
 
 > **What changed in 2.1.** 24 features built in the front end after the 2.0 baseline (12 CRM, 12 projects) with their tables, requirements (REL-11 to REL-22, WRK-12 to WRK-22, IAM-18, IAM-19), jobs and state machines; the decisions D1–D8 (28 October) and B1–B13 (29 October); the security plan by OWASP area (§18.4); the front-end items the server needs (§21.4); corrected counts; a longer delivery plan; and Annex F (error codes). Every change is listed in Annex E. Paragraphs that changed carry the mark **[2.1]**.
+
+> **What changed in 2.2.** The engineering roadmap of 5 November 2026 is adopted and laid onto the delivery plan:
+> - **Decisions E1–E5** (Table 1d).
+> - **ARC-08** fixes one error body.
+> - Three requirements added: **ARC-12** pinned shared rules, **ARC-13** contract tests, **JOB-09** worker heartbeat.
+> - Phase B1a gains contract and foundation hardening.
+> - Phase B1c starts with a **vertical slice**.
+> - **New §21.5**: the roadmap's phases, engineering standards, execution rules and definition of done.
+> - A new risk on contract drift.
+>
+> The Phase 0 audit (`docs/AUDIT.md`) and `docs/engineering/` hold the evidence and the tracker. Changed paragraphs carry the mark **[2.2]**.
 
 ## Table of contents
 
@@ -108,6 +119,18 @@ The owner approved the following on 16 October 2026; the rest of the document bu
 | B11 | Workspace of a request | Named in the path, checked against an active membership; refused otherwise (403 and an audit event) | TEN-01 |
 | B12 | Priority of notices | NTF-05 and NTF-07 are Must: one feed replaces the inbox's many lists | NTF-05, NTF-07 |
 | B13 | Repository layout | Two repositories (see Table 1); `packages/core` lives in the server repository and is published for the web application | Table 1, §4, §5.1, ARC-01 |
+
+**[2.2]** On 5 November 2026 the owner adopted the engineering roadmap and the decisions below, after the Phase 0 audit of both repositories. The register of decisions is `docs/engineering/ARCHITECTURE_DECISIONS.md`.
+
+**Table 1d: Decisions of 5 November 2026 (E1–E5).**
+
+| # | Topic | Decision | Changes |
+|---|---|---|---|
+| E1 | Error body (ADR-004) | Every error is `{ code, values, requestId, message? }`: `code` from the catalogue, `values` fill the translation (a validation error adds `values.field`), `requestId` equals the `X-Request-Id` header, `message` is an optional English fallback. The web application reads `values` (and `details` while it switches) | ARC-08, ARC-13, API contract §2 |
+| E2 | Sessions in the web application (ADR-007) | The realm cookies of Table 13 (`nx_m`, `nx_p`, `nx_s`) replace the `token` cookie the web application checks today; access cookie short, refresh token rotated through `POST /auth/refresh`; the web application sends `X-XSRF-TOKEN` (F11). Written into the contract before B1b; shipped with B1b's first endpoint | §8.2, §21.4 F11, API contract §2 |
+| E3 | Money (ADR-005) | The database keeps integer centimes. The shared rules keep numbers with `roundMoney`. Conversion happens in one adapter at the repository edge. Before B1d, property tests prove totals, VAT, withholding and allocations equal an integer recomputation; if not, the core money functions move to integer cents | §6.3, TST, B1d gate |
+| E4 | Vertical slice first (ADR-008) | B1c starts with one complete flow on the real server (client → project → member → time entry → submit → approve or send back), with permissions, audit, optimistic locking and end-to-end tests; the other B1c features start after its gate | §21.2 |
+| E5 | Engineering roadmap | Phases 0–8 of the roadmap, its engineering standards, execution rules and definition of done apply (§21.5). One audit file (`docs/AUDIT.md`, the same in both repositories); the inventory, decisions and tracker live in `docs/engineering/` | §21.5, Annex E |
 
 ### 1.3 Design Principles
 
@@ -532,10 +555,12 @@ Every request to the server goes through the same chain, in this order. A route 
 | ARC-05 | The same image starts as web or worker; the worker runs jobs and the scheduler; the web process never runs jobs | M | Stopping the worker leaves the web application working and jobs queued |
 | ARC-06 | Modules communicate only through application interfaces and the outbox (Section 5.4) | M | An architecture test lists cross-module imports; only application interfaces appear |
 | ARC-07 | **[2.1, B4]** Every route belongs to one realm prefix: `/app` (members, workspace records under `/app/v1/workspaces/:wid`), `/portal` (client contacts), `/platform` (staff, console host only), `/health` | M | A request with a cookie of another realm receives 401 on every route of the matrix test |
-| ARC-08 | **[2.1, B5]** Errors are returned as stable codes with values, never as sentences; the code returned is the front end's catalogue key (Annex F) | M | A guard test lists every code thrown by the server and finds each in the catalogue |
+| ARC-08 | **[2.1, B5] [2.2, E1]** Errors are returned as stable codes with values, never as sentences, in one body `{ code, values, requestId, message? }`; the code returned is the front end's catalogue key (Annex F) | M | A guard test lists every code thrown by the server and finds each in the catalogue; a contract test checks the body shape (ARC-13) |
 | ARC-09 | The internal interface is versioned (`/app/v1`, `/portal/v1`, `/platform/v1`) so that a public API can be added later without changing the modules | S | The route table contains no unversioned business route |
 | ARC-10 | External services (e-mail, storage, payment provider, DGI, clock, random) are behind ports with a fake for tests | M | The full test suite runs offline |
 | ARC-11 | No new infrastructure component (cache, broker, search engine) is added without a measured need recorded in the decision log | S | The decision log lists the measurement for every component |
+| **ARC-12** **[2.2]** | The shared rules are generated from a recorded commit of the web repository (`packages/core/SOURCE`); CI checks parity against that commit, a scheduled job reports drift from the web repository's `main`, and a release deploys the web application and the server from commits whose rules match | M | A web merge does not change backend CI; the drift report names the files that differ |
+| **ARC-13** **[2.2]** | Contract tests on both sides: the server's error body and each switched module's request and response shapes are checked against the API contract, and the web application's error translation is tested with the server's body | M | Changing a response shape without the contract fails a test in the repository that changed it |
 
 ---
 
@@ -1617,6 +1642,7 @@ Work that is slow, depends on the outside world, or happens at a date runs in th
 | JOB-06 | At most one job of a type runs per workspace at a time; batches are bounded | S | A 500-person workspace's summary refresh does not delay a small workspace's reminders beyond 1 minute |
 | JOB-07 | Queue depth, age of the oldest due job and dead jobs are measured and alerted | M | A dead job raises an alert within 5 minutes |
 | JOB-08 | The worker shuts down gracefully: it stops claiming, finishes or releases current jobs within 30 seconds | S | Deploying during a job does not lose or duplicate it |
+| **JOB-09** **[2.2]** | Each worker writes a heartbeat with its queue metrics (depth, oldest due job, dead jobs, outbox lag) at least every minute; a missing heartbeat for 2 minutes raises an alert | S | Stopping the worker raises the alert; the operations page shows the last heartbeat |
 
 ---
 
@@ -1857,16 +1883,16 @@ The phases refine Lot B of the repository plan. The effort is indicative for one
 
 | Phase | Content | Weeks | Exit gate |
 |---|---|---|---|
-| B1a | **[2.1]** Server repository (`Nexora-Backend`), `packages/core` with the CI check against the web repository, server skeleton from the Architecture repository, PostgreSQL schemas and roles, migrations, unit of work, audit, outbox, job queue, CI with the guard suites | 3 | Guard, privilege and audit suites green on an empty module |
+| B1a | **[2.1]** Server repository (`Nexora-Backend`), `packages/core` with the CI check against the web repository, server skeleton from the Architecture repository, PostgreSQL schemas and roles, migrations, unit of work, audit, outbox, job queue, CI with the guard suites; **[2.2]** contract and foundation hardening: one error body, pinned shared rules, import rules, worker heartbeat, audit seal | 4 | Guard, privilege and audit suites green on an empty module |
 | B1b | Identity, sessions, second factor, workspaces, memberships, roles, permission engine, tenancy barriers, **[2.1]** passcode, step-up, CSRF, session list and administrator revoke | 2 | Isolation and permission suites green; sign-in works end to end |
-| B1c | Settings, people, relations, work, time, timers, approvals, **[2.1]** with the 12 CRM features (REL-11 to REL-22) and the 12 work features (WRK-12 to WRK-22) | **6** | Contract tests of these modules green; scenario steps 1 to 5, 16 and 17 |
+| B1c | **[2.2]** Starts with the vertical slice (E4), whose gate comes first; then settings, people, relations, work, time, timers, approvals, **[2.1]** with the 12 CRM features (REL-11 to REL-22) and the 12 work features (WRK-12 to WRK-22) | **6** | Contract tests of these modules green; scenario steps 1 to 5, 16 and 17 |
 | B1d | Quotes, invoices, numbering, payments, reminders, recurring, purchases, expenses, bank import, journal, VAT, UBL files | 4 | Concurrency and money suites green; scenario steps 6 to 11 |
 | B1e | Analytics summaries, inbox, files, notifications, portal, **[2.1]** notice feed and catalogue, mentions, portal e-mail link, global search | **4** | Scenario step 12; load test of lists and reports |
 | B1f | Platform console backend, support sessions, data requests | 3 | Console permission suite; scenario steps 13 to 15 |
 | B2 | Real e-mail, payment provider port, backups and restore, monitoring, staging and production, load test at full capacity | 3 | Restore timed; QAL-01 met; first real trial |
 | B3 | Key rotation, alerting, IP allow-list option, external penetration test and fixes | 2 | No open high finding; release criteria met |
-| | **Subtotal** | **27** | (2.0: 24) |
-| | **With 25% contingency** | **about 34** | (2.0: 30) |
+| | **Subtotal** | **28** | (2.1: 27; 2.0: 24) |
+| | **With 25% contingency** | **about 35** | (2.1: 34; 2.0: 30) |
 
 ### 21.3 Release Criteria
 
@@ -1893,6 +1919,55 @@ These are changes to the web application (`Nexora-Saas`), found by reading this 
 | F11 | SCR-16: CSRF | The HTTP client sends no `X-XSRF-TOKEN` header (axios `xsrfCookieName` / `xsrfHeaderName`) | M | B1b |
 | F12 | NTF-05: one notice feed | The bell builds its list from about 15 full lists; it must read the one feed | M | B1e |
 
+
+### 21.5 Engineering Roadmap, Standards and Definition of Done **[2.2, E5]**
+
+The engineering roadmap of 5 November 2026 does not replace the phases of Table 67: it orders the work inside them and adds the rules every phase follows. The live state of each item is in `docs/engineering/EXECUTION_TRACKER.md`; the state of each part and module is in `docs/engineering/IMPLEMENTATION_INVENTORY.md`.
+
+**Table 67c: Roadmap phases and delivery phases.**
+
+| Roadmap phase | Delivery phase | Content | Gate |
+|---|---|---|---|
+| 0 Audit and baseline | — | Evidence-based audit of both repositories, inventory, decisions, tracker | Approved by the owner (5 November 2026) |
+| 1 Contract and foundation hardening | B1a, step 4 | One error body (E1, ARC-08, ARC-13); session and CSRF contract (E2); pinned shared rules (ARC-12); import-rule test (ARC-02, ARC-06) | Contract tests green on both sides |
+| 2 Database, transactions, audit, workers | B1a, steps 2–4 | Schemas, roles, RLS, migrations; unit of work, audit trails, outbox, queue, scheduler, worker; heartbeat (JOB-09); audit seal (TRL-05) | Guard, privilege and audit suites green on an empty database (B1a gate) |
+| 3 Identity, authentication, authorization | B1b | Sessions, sign-in, CSRF, memberships, roles, permission engine, step-up, devices | B1b gate |
+| 4 First vertical slice | B1c, first part | Client → project → member → time entry → submit → approve, end to end on the real server (E4) | Data survives reload and restart; shared by two members; refused to outsiders; conflicts handled; end-to-end test green |
+| 5 Core ERP modules | B1c (rest), B1e (operational reports) | Settings, people, the CRM and work features, leave, operational reports | B1c gate |
+| 6 Financial domain | B1d | Money adapter and property tests (E3), idempotency keys, quotes, invoices, numbering, payments, VAT, journal | B1d gate |
+| 7 Remaining modules and asynchronous workflows | B1e, B1f | Files, notifications and e-mail, portal, inbox, search, console, support, data requests | B1e and B1f gates |
+| 8 Hardening and release readiness | B2, B3 | Backups and restore, monitoring, staging, load test, key rotation, penetration test | Release criteria (§21.3) |
+
+**Engineering standards.**
+
+| Area | Standard |
+|---|---|
+| Code | TypeScript strict; no needless `any` or unsafe assertion; small cohesive modules with explicit dependencies; no hidden cross-module coupling; no duplicate business rule; no speculative abstraction |
+| Security | Identity and authorization never taken from the client; permissions checked on the server; tenant isolation at several layers; every external input validated; least privilege |
+| Database | Schema changes only through new migrations; an applied migration is never edited; transactions for atomic operations; constraints in the database; no N+1 queries; concurrency and failure tested |
+| Tests | Unit tests for domain rules; integration tests for persistence and endpoints; contract tests between the repositories (ARC-13); end-to-end tests for workflows; negative security tests; a regression test with every bug fix |
+| Documentation | Updated in the same pull request as the code: architecture, API contract, database, module responsibilities, security decisions, tracker, operations |
+
+**Execution rules.** Each phase:
+1. **Inspects** what exists.
+2. **Plans** files, dependencies, risks and acceptance.
+3. **Implements** the smallest coherent change.
+4. **Validates** with type checks, lint and every relevant test suite.
+5. **Reviews** itself for security, correctness, boundaries and regressions.
+6. **Reports** completed tasks, files, decisions, tests run and skipped, risks and the next task.
+
+A test that was not run is never reported as passed. No phase starts without the owner's approval, and nothing is deployed to production without the owner's explicit authorization.
+
+**Definition of done.** A phase is done when:
+- its functionality and acceptance criteria are met
+- its automated tests pass
+- no known critical regression remains
+- the documentation matches the code
+- security and tenant isolation are verified
+- its remaining limitations are written down
+
+A finished screen is not a finished feature until the server, persistence, authorization and integration behind it are validated.
+
 ---
 
 ## 22. Risks, Dependencies and Open Decisions
@@ -1912,6 +1987,7 @@ These are changes to the web application (`Nexora-Saas`), found by reading this 
 | Performance of reports on large workspaces | Medium | Summary tables, jobs for heavy reports, load test before release |
 | Legal requirements misunderstood | Medium | Items "to confirm" validated in writing before release |
 | **[2.1]** The front end keeps growing while the server is built | Medium | Every new front-end feature updates the API contract and, when it adds data, this document (Annex E) in the same pull request |
+| **[2.2]** The two repositories drift apart (error body, session cookies, response shapes) | Medium | One contract; contract tests on both sides (ARC-13); pinned shared rules (ARC-12); decisions E1 and E2 written into the contract before B1b |
 
 ### 22.2 Dependencies
 
@@ -2048,7 +2124,7 @@ Each record with a status moves only along these transitions; any other change i
 
 | Area | M | S | C | W |
 |---|---|---|---|---|
-| ARC — Architecture | 9 | 2 | 0 | 0 |
+| ARC — Architecture | 11 | 2 | 0 | 0 |
 | DAT — Database | 17 | 2 | 0 | 0 |
 | IAM — Identity and sessions | 14 | 3 | 2 | 0 |
 | TEN — Multi-tenancy | 12 | 1 | 1 | 0 |
@@ -2068,15 +2144,15 @@ Each record with a status moves only along these transitions; any other change i
 | PLF — Platform console | 15 | 2 | 0 | 0 |
 | TRX — Transactions | 8 | 2 | 0 | 0 |
 | TRL — Audit trail | 8 | 1 | 0 | 0 |
-| JOB — Background jobs | 5 | 3 | 0 | 0 |
+| JOB — Background jobs | 5 | 4 | 0 | 0 |
 | SCR — Security | 14 | 4 | 0 | 0 |
 | RET — Privacy and retention | 8 | 1 | 0 | 0 |
 | QAL — Quality and operations | 10 | 2 | 1 | 0 |
 | TST — Testing | 4 | 1 | 0 | 0 |
 | MIG — Migration | 5 | 2 | 0 | 0 |
-| **Total** | **268** | **61** | **7** | **1** |
+| **Total** | **270** | **62** | **7** | **1** |
 
-Version 2.0 had 305 requirements (253 M, 46 S, 5 C, 1 W). Version 2.1 has **337**: 32 added (IAM-18, IAM-19, REL-11 to REL-22, WRK-12 to WRK-22, ANL-08, NTF-07, NTF-08, SCR-16 to SCR-18, MIG-07) and one raised from S to M (NTF-05).
+Version 2.0 had 305 requirements (253 M, 46 S, 5 C, 1 W). Version 2.1 has **337**: 32 added (IAM-18, IAM-19, REL-11 to REL-22, WRK-12 to WRK-22, ANL-08, NTF-07, NTF-08, SCR-16 to SCR-18, MIG-07) and one raised from S to M (NTF-05). **[2.2]** Version 2.2 has **340**: ARC-12, ARC-13 (M) and JOB-09 (S) added; ARC-08 updated.
 
 ### E. Document Control
 
@@ -2086,7 +2162,8 @@ Version 2.0 had 305 requirements (253 M, 46 S, 5 C, 1 W). Version 2.1 has **337*
 |---|---|---|
 | 1.0 | 7 October 2026 | First backend specification (API and data platform), baseline front end v3 |
 | 2.0 | 16 October 2026 | Rewritten for the backend and database of every Nexora user; built on the front end at Lot A11 and the Architecture repository; public API moved out of scope; decisions of 16 October 2026 applied |
-| **2.1** | **29 October 2026** | Brought up to the front end after audit fixes A1–A4 and the API contract v2; decisions D1–D8 and B1–B13 applied; converted from PDF to Markdown and kept in the server repository. Details below |
+| 2.1 | 29 October 2026 | Brought up to the front end after audit fixes A1–A4 and the API contract v2; decisions D1–D8 and B1–B13 applied; converted from PDF to Markdown and kept in the server repository. Details below |
+| **2.2** | **5 November 2026** | Engineering roadmap adopted after the Phase 0 audit; decisions E1–E5; ARC-08 updated, ARC-12, ARC-13 and JOB-09 added; B1a and B1c phases refined; new §21.5. Details below |
 
 **Changes in 2.1, by section.**
 
@@ -2117,6 +2194,19 @@ Version 2.0 had 305 requirements (253 M, 46 S, 5 C, 1 W). Version 2.1 has **337*
 | §21 | MIG-07; phases B1b, B1c, B1e longer (27 weeks, about 34 with contingency); new §21.4 front-end items | Gap report C, E |
 | §22 | Rules drift and growing front end risks | B13 |
 | Annexes | Glossary terms; 7 new state machines; traceability to the full audit and the contract; counts; new Annex F | Gap report A3.4, B5, D5 |
+
+**Changes in 2.2, by section.**
+
+| Section | Change | Source |
+|---|---|---|
+| Cover | Version 2.2 of 5 November 2026 | Roadmap adoption |
+| §1.2 | Table 1d: decisions E1–E5 | Owner, 5 November 2026; ADR-004, ADR-005, ADR-007, ADR-008 |
+| §5.7 | ARC-08 fixes the error body `{ code, values, requestId, message? }`; ARC-12 (pinned shared rules) and ARC-13 (contract tests) added | Audit H-1, M-1 |
+| §17.3 | JOB-09 worker heartbeat with queue metrics | Audit M-3 |
+| §21.2 | B1a includes contract and foundation hardening (4 weeks); B1c starts with the vertical slice; 28 weeks, about 35 with contingency | E4, E5 |
+| §21.5 | New: roadmap phases mapped onto delivery phases (Table 67c), engineering standards, execution rules, definition of done | E5 |
+| §22.1 | Risk of the two repositories drifting apart | Audit H-1, H-2 |
+| Annex D | 340 requirements (270 M, 62 S, 7 C, 1 W) | ARC-12, ARC-13, JOB-09 |
 
 This document is approved by the owner of Nexora before phase B1a starts. Any change to a Must requirement after approval is recorded here with its reason.
 

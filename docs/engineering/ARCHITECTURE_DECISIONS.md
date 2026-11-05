@@ -1,17 +1,17 @@
 # Nexora: architecture decisions
 
-_Each decision has a status: **Accepted** (in force, often already in the code), **Proposed** (needs the owner's approval before the phase that uses it) or **Superseded**. The cahier des charges holds the full reasoning; this page is the short register. Last update: 5 November 2026 (Phase 0 audit)._
+_Each decision has a status: **Accepted** (in force, often already in the code), **Proposed** (needs the owner's approval before the phase that uses it) or **Superseded**. The cahier des charges holds the full reasoning; this page is the short register. Last update: 5 November 2026: the owner accepted ADR-004, ADR-005, ADR-007 and ADR-008 (cahier des charges 2.2, decisions E1–E4)._
 
 | # | Decision | Status | Where it lives |
 |---|---|---|---|
 | ADR-001 | Modular monolith | Accepted | Cahier §5 |
 | ADR-002 | PostgreSQL only; isolation by RLS and a role per transaction | Accepted, built | `0001_foundation.sql`, `session.ts` |
-| ADR-003 | Shared rules generated from the web repository | Accepted; amendment proposed | `sync-core.mjs` |
-| ADR-004 | One error body | **Proposed** | Audit H-1 |
-| ADR-005 | Money representation | **Proposed** | Audit H-3 |
+| ADR-003 | Shared rules generated from the web repository | Accepted; amendment accepted (ARC-12) | `sync-core.mjs` |
+| ADR-004 | One error body | Accepted (E1) | Audit H-1; cahier ARC-08, ARC-13 |
+| ADR-005 | Money representation | Accepted (E3) | Audit H-3; cahier §6.3 |
 | ADR-006 | Queue, outbox and scheduler on PostgreSQL | Accepted, built in PR #5 | `src/jobs/*` |
-| ADR-007 | Same-origin sessions, realm cookies, CSRF double-submit | Accepted (D1); cookie details **proposed** | Cahier D1, Table 13; audit H-2 |
-| ADR-008 | Vertical slice before module expansion | **Proposed** | Roadmap phase 4 |
+| ADR-007 | Same-origin sessions, realm cookies, CSRF double-submit | Accepted (D1, E2) | Cahier D1, E2, Table 13; audit H-2 |
+| ADR-008 | Vertical slice before module expansion | Accepted (E4) | Cahier §21.2, §21.5 |
 | ADR-009 | One audit file, one execution tracker | Accepted | `CLAUDE.md` of both repositories |
 
 ---
@@ -40,7 +40,7 @@ _Each decision has a status: **Accepted** (in force, often already in the code),
 
 **Decision.** The rules are written once, in `Nexora-Saas`. `scripts/sync-core.mjs` copies the pure ones into `packages/core`, and CI checks parity.
 
-**Proposed amendment (audit M-1).**
+**Amendment (audit M-1, accepted as ARC-12).**
 - `sync:core` writes the source commit to `packages/core/SOURCE`.
 - The CI parity job checks out that commit instead of `main`.
 - A scheduled job reports drift from web `main`.
@@ -48,7 +48,7 @@ _Each decision has a status: **Accepted** (in force, often already in the code),
 
 **Why.** A merge in the web repository should not turn backend CI red without a backend change, and production must never run two versions of a rule.
 
-## ADR-004 One error body (proposed)
+## ADR-004 One error body (accepted, E1)
 
 **Decision.** Every error the server returns, and the contract, use:
 
@@ -71,7 +71,7 @@ _Each decision has a status: **Accepted** (in force, often already in the code),
 
 **Why this and not `details`.** The server is already built with `values`, and the word matches the translation API (`t(key, values)`). The front-end change is one function and its test.
 
-## ADR-005 Money representation (proposed)
+## ADR-005 Money representation (accepted, E3)
 
 **Decision.**
 
@@ -104,7 +104,7 @@ Conversion happens in **one adapter** at the repository edge (`toCents` / `fromC
 - `XSRF-TOKEN` cookie and `X-XSRF-TOKEN` header on writes.
 - `Origin` check.
 
-**Proposed part (audit H-2).**
+**Detail accepted on 5 November 2026 (E2, audit H-2).**
 
 | Item | Proposal |
 |---|---|
@@ -115,7 +115,7 @@ Conversion happens in **one adapter** at the repository edge (`toCents` / `fromC
 
 These ship together with the first B1b endpoint.
 
-## ADR-008 Vertical slice before module expansion (proposed)
+## ADR-008 Vertical slice before module expansion (accepted, E4)
 
 **Decision.** After identity (B1b), the first business work is one complete flow on the real server:
 

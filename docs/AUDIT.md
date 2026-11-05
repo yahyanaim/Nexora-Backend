@@ -134,3 +134,23 @@ The mapping of every roadmap phase onto the cahier's phases, with each open item
 | Shared rules with parity check | Pinned rule version (M-1), import-rule test (M-2) |
 | CI: typecheck, tests on real PostgreSQL, dependency audit, e2e, axe | Worker health and metrics (M-3), audit seal and retention (M-4) |
 | Specification, architecture, database docs, interactive diagrams | Staging, backups, monitoring, load test, penetration test (B2, B3) |
+
+## 7. Decisions taken after this audit (5 November 2026)
+
+The owner approved Phase 0 and the plan. The decisions are written into the cahier des charges, **version 2.2**.
+
+| Decision | Content | Cahier |
+|---|---|---|
+| E1 (ADR-004) | One error body `{ code, values, requestId, message? }` | §1.2, ARC-08, ARC-13 |
+| E2 (ADR-007) | Realm cookies `nx_m`, `nx_p`, `nx_s`, rotating refresh, `X-XSRF-TOKEN` | §1.2, §8.2 |
+| E3 (ADR-005) | Money: centimes in the database, one conversion adapter, property tests before invoicing | §1.2, §6.3 |
+| E4 (ADR-008) | Vertical slice before the rest of B1c | §1.2, §21.2 |
+| E5 | The engineering roadmap, standards and definition of done apply | §21.5 |
+
+New requirements:
+- **ARC-12**: pinned shared rules
+- **ARC-13**: contract tests
+- **JOB-09**: worker heartbeat
+
+Phase B1a now includes the contract and foundation hardening (4 weeks). The plan is 28 weeks, about 35 with contingency. The next six pull requests are listed in `docs/engineering/EXECUTION_TRACKER.md` (Phase 1).
+
