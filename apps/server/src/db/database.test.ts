@@ -6,7 +6,7 @@ import { ADMIN_URL, createTestDb, seedTwoWorkspaces, type TestDb } from "./testi
 import { uuidv7 } from "./uuid"
 
 const SCHEMAS = ["identity", "tenant", "platform", "ops", "audit", "archive"]
-const GROUP_ROLES = ["nx_app", "nx_portal", "nx_platform", "nx_support", "nx_dataops", "nx_provision", "nx_readonly"]
+const GROUP_ROLES = ["nx_app", "nx_portal", "nx_platform", "nx_support", "nx_dataops", "nx_provision", "nx_readonly", "nx_jobs"]
 
 /** The error code PostgreSQL returns, or null when the call succeeded. */
 async function sqlState(run: () => Promise<unknown>) {

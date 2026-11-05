@@ -2,7 +2,7 @@
   "schema_version": 1,
   "diagram_type": "architecture",
   "meta": {
-    "title": "Nexora: how a request reaches the database (built through B1a step 2)",
+    "title": "Nexora: how a request reaches the database (built through B1a step 3)",
     "output": "docs/diagrams/architecture.html",
     "locale": "en",
     "quality_profile": "showcase",
@@ -10,7 +10,7 @@
       "url": "https://github.com/yahyanaim/Nexora-Backend",
       "provider": "github",
       "link_mode": "web",
-      "revision": "d7f79ef7dcf210007344979b7da80b85f2184ca7"
+      "revision": "5c4c26412538f042e33c6ae9464c0b81ee392f3c"
     }
   },
   "components": [
@@ -101,7 +101,7 @@
       "id": "session",
       "type": "security",
       "label": "Unit of work",
-      "sublabel": "SET LOCAL ROLE + context",
+      "sublabel": "role, context, audit, outbox",
       "pos": [
         790,
         50
@@ -116,6 +116,12 @@
           "line": 27,
           "end_line": 47,
           "label": "inTransaction"
+        },
+        {
+          "path": "apps/server/src/db/unit-of-work.ts",
+          "line": 125,
+          "end_line": 133,
+          "label": "runUnitOfWork"
         }
       ]
     },
@@ -123,7 +129,7 @@
       "id": "db",
       "type": "database",
       "label": "PostgreSQL 16",
-      "sublabel": "6 schemas, forced RLS",
+      "sublabel": "forced RLS, audit, queue",
       "pos": [
         1060,
         50
@@ -135,21 +141,21 @@
       "sources": [
         {
           "path": "apps/server/src/db/migrations/0001_foundation.sql",
-          "line": 23,
-          "end_line": 28,
-          "label": "six schemas"
-        },
-        {
-          "path": "apps/server/src/db/migrations/0001_foundation.sql",
           "line": 98,
           "end_line": 109,
           "label": "secure_tenant_table"
         },
         {
-          "path": "apps/server/src/db/migrations/0004_tenant_departments.sql",
+          "path": "apps/server/src/db/migrations/0005_audit_trails.sql",
           "line": 1,
-          "end_line": 18,
-          "label": "first business table"
+          "end_line": 104,
+          "label": "audit trails, insert-only"
+        },
+        {
+          "path": "apps/server/src/db/migrations/0006_outbox_jobs.sql",
+          "line": 1,
+          "end_line": 94,
+          "label": "outbox, jobs, schedules"
         }
       ]
     },
@@ -204,8 +210,43 @@
         },
         {
           "path": "apps/server/package.json",
-          "line": 11,
+          "line": 12,
           "label": "db:migrate script"
+        }
+      ]
+    },
+    {
+      "id": "worker",
+      "type": "backend",
+      "label": "Worker process",
+      "sublabel": "npm run worker",
+      "tag": "queue, scheduler, outbox",
+      "pos": [
+        600,
+        410
+      ],
+      "size": [
+        150,
+        64
+      ],
+      "sources": [
+        {
+          "path": "apps/server/src/worker-main.ts",
+          "line": 9,
+          "end_line": 39,
+          "label": "entry point"
+        },
+        {
+          "path": "apps/server/src/worker/worker.ts",
+          "line": 50,
+          "end_line": 72,
+          "label": "one turn"
+        },
+        {
+          "path": "apps/server/src/jobs/queue.ts",
+          "line": 65,
+          "end_line": 93,
+          "label": "claimJobs (SKIP LOCKED)"
         }
       ]
     }
@@ -218,7 +259,8 @@
         "server",
         "session",
         "core",
-        "migrate"
+        "migrate",
+        "worker"
       ]
     }
   ],
@@ -268,6 +310,12 @@
       "from": "migrate",
       "to": "db",
       "label": "as nx_owner"
+    },
+    {
+      "id": "worker-db",
+      "from": "worker",
+      "to": "db",
+      "label": "jobs, outbox as nx_worker"
     }
   ],
   "cards": [
@@ -294,8 +342,8 @@
       "dot": "slate",
       "title": "Not built yet",
       "items": [
-        "Worker process, outbox and job queue (B1a step 3)",
         "Identity and sessions (B1b), business modules (B1c onwards)",
+        "Job handlers of the modules (e-mail, files, summaries)",
         "Object storage and e-mail (B1e, B2)"
       ]
     }

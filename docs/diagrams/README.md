@@ -2,11 +2,11 @@
 
 Nine interactive diagrams of Nexora, generated with [Archify](https://github.com/tt-a1i/archify) (Apache-2.0). Every box links to the exact source lines that prove it.
 
-### What is built (sources: the code, commit `d7f79ef`, after B1a step 2)
+### What is built (sources: the code; `architecture.html` at commit `5c4c264`, after B1a step 3; the others at `d7f79ef`, after B1a step 2)
 
 | Diagram | What it shows |
 |---|---|
-| [`architecture.html`](architecture.html) | How a request reaches the database: users, the web app, the web process, the unit of work, PostgreSQL, the shared rules and the migration step |
+| [`architecture.html`](architecture.html) | How a request reaches the database: users, the web app, the web process, the unit of work, PostgreSQL, the shared rules, the migration step and the worker |
 | [`request-sequence.html`](request-sequence.html) | A readiness request step by step: one transaction under a database role, applied migrations compared with the files, 200 or 503 |
 | [`database.html`](database.html) | The tables that exist today, by schema, with every column, type and key |
 | [`rule-sync.html`](rule-sync.html) | How a rule change travels from Nexora-Saas to the server, and the CI check that blocks a pull request when the two copies differ |
