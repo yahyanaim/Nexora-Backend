@@ -15,7 +15,7 @@ _The real state of every part of Nexora, from the code, not from the plan. Updat
 | Repository, workspaces, CI (typecheck, tests on PostgreSQL 16, dependency audit, rule parity) | ✅ | `package.json`, `.github/workflows/ci.yml` | ARC-01, ARC-03 | CI |
 | Configuration (refuses weak production secrets) | ✅ | `apps/server/src/config/config.ts` | ARC-04 | `config.test.ts` |
 | HTTP skeleton: request id, security headers, body limit, health, catalogue errors | ✅ | `src/http/app.ts`, `src/http/errors.ts` | QAL-05, SCR-04, ARC-08 | `app.test.ts`, `error-codes.test.ts` |
-| Error body agreed with the front end | 🟡 | `src/http/app.ts:62-74` sends `values`; front end reads `details` | ARC-08 | Audit H-1 |
+| Error body agreed with the front end | ✅ | `src/http/error-body.ts`; front end `translate-error.ts` reads `values` | ARC-08, ARC-13 | `error-body.test.ts`, front end `translate-error.test.ts` |
 | Shared rules `packages/core` (125 files, 25 test files) | ✅, 🟡 not pinned | `scripts/sync-core.mjs`, `packages/core` | ARC-01, ARC-03 | 136 core tests; parity job |
 | Schemas, group roles, NOINHERIT logins | ✅ | `migrations/0001_foundation.sql` | DAT-01, DAT-02, TEN-10 | `database.test.ts` |
 | Forced RLS, actor and version stamps, composite tenant keys | ✅ | `0001`, `0003`, `0004` | DAT-08–DAT-11, TEN-05 | `database.test.ts` |
@@ -79,5 +79,5 @@ The front-end column counts the API modules in `Nexora-Saas/src/lib/api` (56 in 
 | Front-end accessibility (axe, console and company pages) | CI job | CI |
 | Back-end server tests | 42 on `main`, 69 with PR #5 (database suites on real PostgreSQL 16) | Local with `TEST_DATABASE_ADMIN_URL`; always in CI |
 | Back-end core rule tests | 136 | Local and CI |
-| Contract tests front end ↔ back end | ⬜ none | — (audit H-1) |
+| Contract tests front end ↔ back end | 🟡 error body (same example on both sides); module shapes come with each module | Local and CI |
 | Guard, privilege and audit suites (B1a exit gate) | 🟡 privilege and isolation tests exist; import-rule test and audit secret scan missing | — |

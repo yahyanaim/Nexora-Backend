@@ -52,7 +52,7 @@ Done in six pull requests, in this order, each with its own tests and checks; th
 
 | # | Item | Source | Repository | Acceptance |
 |---|---|---|---|---|
-| 1.1 | Error body `{ code, values, requestId, message? }`; front end reads `values` (and `details` during the switch); contract §2 updated | H-1, ADR-004 | both | Contract test passes on both sides; translated values shown |
+| 1.1 | Error body `{ code, values, requestId, message? }`; front end reads `values` (and `details` during the switch); contract §2 updated | H-1, ADR-004 | both | Contract test passes on both sides; translated values shown (done, step 1) |
 | 1.2 | Session cookie names, refresh flow and CSRF header decided and written into the contract | H-2, ADR-007 | both | ADR-007 accepted; contract §2 updated (code ships in phase 3) |
 | 1.3 | `packages/core/SOURCE` with the web commit; CI parity against it; scheduled drift report | M-1, ARC-12 | backend | A web merge no longer turns backend CI red; drift reported |
 | 1.4 | Import-rule test: domain cannot import HTTP or infrastructure; modules only through their interface | M-2, ARC-06 | backend | Test fails on a forbidden import |
