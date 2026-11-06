@@ -127,7 +127,7 @@ The owner approved the following on 16 October 2026; the rest of the document bu
 | # | Topic | Decision | Changes |
 |---|---|---|---|
 | E1 | Error body (ADR-004) | Every error is `{ code, values, requestId, message? }`: `code` from the catalogue, `values` fill the translation (a validation error adds `values.field`), `requestId` equals the `X-Request-Id` header, `message` is an optional English fallback. The web application reads `values` (and `details` while it switches) | ARC-08, ARC-13, API contract §2 |
-| E2 | Sessions in the web application (ADR-007) | The realm cookies of Table 13 (`nx_m`, `nx_p`, `nx_s`) replace the `token` cookie the web application checks today; access cookie short, refresh token rotated through `POST /auth/refresh`; the web application sends `X-XSRF-TOKEN` (F11). Written into the contract before B1b; shipped with B1b's first endpoint | §8.2, §21.4 F11, API contract §2 |
+| E2 | Sessions in the web application (ADR-007) | The realm cookies of Table 6 (`nx_m`, `nx_p`, `nx_s`) replace the `token` cookie the web application checks today; access cookie short, refresh token rotated through `POST /auth/refresh`; the web application sends `X-XSRF-TOKEN` (F11). Written into the contract before B1b; shipped with B1b's first endpoint | §8.2, §21.4 F11, API contract §2 |
 | E3 | Money (ADR-005) | The database keeps integer centimes. The shared rules keep numbers with `roundMoney`. Conversion happens in one adapter at the repository edge. Before B1d, property tests prove totals, VAT, withholding and allocations equal an integer recomputation; if not, the core money functions move to integer cents | §6.3, TST, B1d gate |
 | E4 | Vertical slice first (ADR-008) | B1c starts with one complete flow on the real server (client → project → member → time entry → submit → approve or send back), with permissions, audit, optimistic locking and end-to-end tests; the other B1c features start after its gate | §21.2 |
 | E5 | Engineering roadmap | Phases 0–8 of the roadmap, its engineering standards, execution rules and definition of done apply (§21.5). One audit file (`docs/AUDIT.md`, the same in both repositories); the inventory, decisions and tracker live in `docs/engineering/` | §21.5, Annex E |
@@ -2201,6 +2201,7 @@ Version 2.0 had 305 requirements (253 M, 46 S, 5 C, 1 W). Version 2.1 has **337*
 |---|---|---|
 | Cover | Version 2.2 of 5 November 2026 | Roadmap adoption |
 | §1.2 | Table 1d: decisions E1–E5 | Owner, 5 November 2026; ADR-004, ADR-005, ADR-007, ADR-008 |
+| §1.2 | E2 points to Table 6 (sign-in realms), not Table 13 (corrected 6 November 2026, step 2 of Phase 1) | Audit H-6 |
 | §5.7 | ARC-08 fixes the error body `{ code, values, requestId, message? }`; ARC-12 (pinned shared rules) and ARC-13 (contract tests) added | Audit H-1, M-1 |
 | §17.3 | JOB-09 worker heartbeat with queue metrics | Audit M-3 |
 | §21.2 | B1a includes contract and foundation hardening (4 weeks); B1c starts with the vertical slice; 28 weeks, about 35 with contingency | E4, E5 |

@@ -1,6 +1,6 @@
 # Nexora: architecture decisions
 
-_Each decision has a status: **Accepted** (in force, often already in the code), **Proposed** (needs the owner's approval before the phase that uses it) or **Superseded**. The cahier des charges holds the full reasoning; this page is the short register. Last update: 5 November 2026: the owner accepted ADR-004, ADR-005, ADR-007 and ADR-008 (cahier des charges 2.2, decisions E1–E4)._
+_Each decision has a status: **Accepted** (in force, often already in the code), **Proposed** (needs the owner's approval before the phase that uses it) or **Superseded**. The cahier des charges holds the full reasoning; this page is the short register. Last update: 6 November 2026: ADR-007 written into the API contract (Phase 1, step 2). Earlier: 5 November 2026, the owner accepted ADR-004, ADR-005, ADR-007 and ADR-008 (cahier des charges 2.2, decisions E1–E4)._
 
 | # | Decision | Status | Where it lives |
 |---|---|---|---|
@@ -10,7 +10,7 @@ _Each decision has a status: **Accepted** (in force, often already in the code),
 | ADR-004 | One error body | Accepted (E1) | Audit H-1; cahier ARC-08, ARC-13 |
 | ADR-005 | Money representation | Accepted (E3) | Audit H-3; cahier §6.3 |
 | ADR-006 | Queue, outbox and scheduler on PostgreSQL | Accepted, built in PR #5 | `src/jobs/*` |
-| ADR-007 | Same-origin sessions, realm cookies, CSRF double-submit | Accepted (D1, E2) | Cahier D1, E2, Table 13; audit H-2 |
+| ADR-007 | Same-origin sessions, realm cookies, CSRF double-submit | Accepted (D1, E2); contract written (step 2) | Cahier D1, E2, Table 6; API contract §2; audit H-2, H-6 |
 | ADR-008 | Vertical slice before module expansion | Accepted (E4) | Cahier §21.2, §21.5 |
 | ADR-009 | One audit file, one execution tracker | Accepted | `CLAUDE.md` of both repositories |
 
@@ -104,16 +104,23 @@ Conversion happens in **one adapter** at the repository edge (`toCents` / `fromC
 - `XSRF-TOKEN` cookie and `X-XSRF-TOKEN` header on writes.
 - `Origin` check.
 
-**Detail accepted on 5 November 2026 (E2, audit H-2).**
+**Detail accepted on 5 November 2026 (E2, audit H-2), written into the API contract §2 on 6 November 2026 (step 2, audit H-6).**
 
-| Item | Proposal |
+| Item | Contract |
 |---|---|
-| Cookie names | The cahier's realm cookies (`nx_m` company, `nx_p` portal, `nx_s` console) replace `token` |
-| Edge guard | `src/proxy.ts` checks the cookie of the route's realm |
-| Refresh | The access cookie is short-lived; `POST /auth/refresh` rotates the refresh token (cahier §8, reuse detection) |
-| CSRF | Axios sends `X-XSRF-TOKEN` (F11) |
+| Paths | Every path starts with its realm and version: `/app/v1/…` (members; workspace records under `/app/v1/workspaces/:wid/…`), `/portal/v1/…` (client contacts), `/platform/v1/…` (console host only), `/health/…` (probes). The workspace in the path is checked against the person's memberships (B11); a workspace id in a body or query is never trusted |
+| Cookies | One session cookie per realm (cahier Table 6): `nx_m`, `nx_p`, `nx_s`. `HttpOnly; Secure; SameSite=Lax`, scoped to the realm's path (`/api/app`, `/api/portal`) or to the console host. A cookie of another realm gets `401` |
+| Session limits | Console 15 min idle / 8 h absolute; members 30 min / 12 h; portal 2 h / 7 days. New session id at sign-in and on any change of rights; a password change ends the other sessions |
+| Access and refresh | The access cookie lives 15 minutes and carries only the session id and realm; every request reloads the session. A `401` triggers one `POST <realm>/auth/refresh`, then a replay. The refresh token rotates on every use; a replaced token presented again revokes the session (reuse detection, cahier §8) |
+| CSRF | The server sets a readable `XSRF-TOKEN` cookie; the web application sends `X-XSRF-TOKEN` on every write (axios `xsrfCookieName`, `xsrfHeaderName`, `withXSRFToken: true`, item F11). The server also checks `Origin` on writes. Missing or wrong: `403 err_csrf` |
+| Edge guard | `src/proxy.ts` only checks that the cookie of the route's realm is present and sends a guest to the right sign-in with `?next=`. The server decides access on every request |
 
-These ship together with the first B1b endpoint.
+**Shipping.** The contract is written now; the code ships together with the first B1b endpoint, in one change on each side:
+
+| Repository | Change |
+|---|---|
+| Nexora-Saas | `src/lib/myapi/client.ts` (realm base URL, workspace prefix, realm refresh, XSRF settings); `src/proxy.ts` (realm cookies); `e2e/mock-api.mjs` and `e2e/app.spec.ts` (realm paths, cookies, `XSRF-TOKEN`) |
+| Nexora-Backend | Realm routers, session middleware, refresh rotation with reuse detection, CSRF and `Origin` middleware; contract tests of the cookies and the `err_csrf` body |
 
 ## ADR-008 Vertical slice before module expansion (accepted, E4)
 
