@@ -6,7 +6,8 @@
   "engines": { "node": ">=22" },
   "scripts": {
     "typecheck": "npm run typecheck --workspaces --if-present",
-    "test": "npm run test --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present && npm run test:scripts",
+    "test:scripts": "node --test scripts/*.test.mjs",
     "check": "npm run typecheck && npm test",
     "sync:core": "node scripts/sync-core.mjs",
     "check:core": "node scripts/sync-core.mjs --check"
