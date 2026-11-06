@@ -1,6 +1,6 @@
 # Nexora: execution tracker
 
-_The engineering roadmap (phases 0–8) laid onto the delivery plan of the cahier des charges (phases B1a–B3, §21.2), with every open item. One phase is approved and worked at a time; each ends with its gate, tests and an updated inventory. Last update: 6 November 2026: Phase 1 steps 1 (merged) and 2 (open). Earlier: 5 November 2026, Phase 0 approved; decisions E1–E5 in the cahier des charges 2.2 (§1.2, §21.5). The step-by-step log is §8 of `docs/AUDIT.md`._
+_The engineering roadmap (phases 0–8) laid onto the delivery plan of the cahier des charges (phases B1a–B3, §21.2), with every open item. One phase is approved and worked at a time; each ends with its gate, tests and an updated inventory. Last update: 6 November 2026: Phase 1 steps 1 and 2 merged. Earlier: 5 November 2026, Phase 0 approved; decisions E1–E5 in the cahier des charges 2.2 (§1.2, §21.5). The step-by-step log is §8 of `docs/AUDIT.md`._
 
 **Legend:**
 - ✅ done
@@ -14,7 +14,7 @@ _The engineering roadmap (phases 0–8) laid onto the delivery plan of the cahie
 | Roadmap phase | Cahier phase | Content | Estimate | State |
 |---|---|---|---|---|
 | 0 Audit and baseline | — | This audit, inventory, decisions, tracker | 1 day | ✅ approved, merged (#5, Nexora-Saas #140) |
-| 1 Contract and foundation hardening | B1a step 4 | Error body (E1), session contract (E2), pinned rules (ARC-12), import-rule test, contract tests (ARC-13) | 1 week | 🔄 steps 1 ✅ (#7, Nexora-Saas #142), 2 🔄 |
+| 1 Contract and foundation hardening | B1a step 4 | Error body (E1), session contract (E2), pinned rules (ARC-12), import-rule test, contract tests (ARC-13) | 1 week | 🔄 steps 1 ✅ (#7, Nexora-Saas #142), 2 ✅ (#8, Nexora-Saas #143); step 3 next |
 | 2 Database, transactions, audit, workers | B1a steps 2–4 | Steps 2 and 3 merged (#3, #5); close-out and exit gate (heartbeat, seal, guard, privilege and audit suites) | 0.5 week left | 🔄 |
 | 3 Identity, authentication, authorization | B1b | Sessions, sign-in, CSRF, memberships, roles, permission engine, step-up, devices | 2–3 weeks | ⬜ |
 | 4 First vertical slice | B1c (part) | Client → project → member → time → submit → approve, end to end | 2–3 weeks | ⬜ |
@@ -43,7 +43,7 @@ Done in six pull requests, in this order, each with its own tests and checks; th
 | PR | Items | State |
 |---|---|---|
 | 1 | 1.1 error body (both repositories) | ✅ merged (#7, Nexora-Saas #142) |
-| 2 | 1.2 session and CSRF contract (docs, both repositories) | 🔄 open, waits for the owner |
+| 2 | 1.2 session and CSRF contract (docs, both repositories) | ✅ merged (#8, Nexora-Saas #143) |
 | 3 | 1.3 pinned shared rules | ⬜ |
 | 4 | 1.4 import-rule test and 1.5 session guard tests | ⬜ |
 | 5 | 2.3 worker heartbeat and 2.4 audit seal | ⬜ |
