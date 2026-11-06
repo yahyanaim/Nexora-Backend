@@ -1,6 +1,6 @@
 # Nexora: execution tracker
 
-_The engineering roadmap (phases 0–8) laid onto the delivery plan of the cahier des charges (phases B1a–B3, §21.2), with every open item. One phase is approved and worked at a time; each ends with its gate, tests and an updated inventory. Last update: 6 November 2026: Phase 1 steps 1 and 2 merged. Earlier: 5 November 2026, Phase 0 approved; decisions E1–E5 in the cahier des charges 2.2 (§1.2, §21.5). The step-by-step log is §8 of `docs/AUDIT.md`._
+_The engineering roadmap (phases 0–8) laid onto the delivery plan of the cahier des charges (phases B1a–B3, §21.2), with every open item. One phase is approved and worked at a time; each ends with its gate, tests and an updated inventory. Last update: 6 November 2026: Phase 1 steps 1 and 2 merged; step 3 open. Earlier: 5 November 2026, Phase 0 approved; decisions E1–E5 in the cahier des charges 2.2 (§1.2, §21.5). The step-by-step log is §8 of `docs/AUDIT.md`._
 
 **Legend:**
 - ✅ done
@@ -14,7 +14,7 @@ _The engineering roadmap (phases 0–8) laid onto the delivery plan of the cahie
 | Roadmap phase | Cahier phase | Content | Estimate | State |
 |---|---|---|---|---|
 | 0 Audit and baseline | — | This audit, inventory, decisions, tracker | 1 day | ✅ approved, merged (#5, Nexora-Saas #140) |
-| 1 Contract and foundation hardening | B1a step 4 | Error body (E1), session contract (E2), pinned rules (ARC-12), import-rule test, contract tests (ARC-13) | 1 week | 🔄 steps 1 ✅ (#7, Nexora-Saas #142), 2 ✅ (#8, Nexora-Saas #143); step 3 next |
+| 1 Contract and foundation hardening | B1a step 4 | Error body (E1), session contract (E2), pinned rules (ARC-12), import-rule test, contract tests (ARC-13) | 1 week | 🔄 steps 1 ✅ (#7, Nexora-Saas #142), 2 ✅ (#8, Nexora-Saas #143), 3 🔄 |
 | 2 Database, transactions, audit, workers | B1a steps 2–4 | Steps 2 and 3 merged (#3, #5); close-out and exit gate (heartbeat, seal, guard, privilege and audit suites) | 0.5 week left | 🔄 |
 | 3 Identity, authentication, authorization | B1b | Sessions, sign-in, CSRF, memberships, roles, permission engine, step-up, devices | 2–3 weeks | ⬜ |
 | 4 First vertical slice | B1c (part) | Client → project → member → time → submit → approve, end to end | 2–3 weeks | ⬜ |
@@ -44,7 +44,7 @@ Done in six pull requests, in this order, each with its own tests and checks; th
 |---|---|---|
 | 1 | 1.1 error body (both repositories) | ✅ merged (#7, Nexora-Saas #142) |
 | 2 | 1.2 session and CSRF contract (docs, both repositories) | ✅ merged (#8, Nexora-Saas #143) |
-| 3 | 1.3 pinned shared rules | ⬜ |
+| 3 | 1.3 pinned shared rules | 🔄 open, waits for the owner |
 | 4 | 1.4 import-rule test and 1.5 session guard tests | ⬜ |
 | 5 | 2.3 worker heartbeat and 2.4 audit seal | ⬜ |
 | 6 | 2.5 B1a exit gate and 1.6 docs | ⬜ |
@@ -54,7 +54,7 @@ Done in six pull requests, in this order, each with its own tests and checks; th
 |---|---|---|---|---|
 | 1.1 | Error body `{ code, values, requestId, message? }`; front end reads `values` (and `details` during the switch); contract §2 updated | H-1, ADR-004 | both | Contract test passes on both sides; translated values shown (done, step 1) |
 | 1.2 | Session cookie names, refresh flow and CSRF header decided and written into the contract; realm and version path prefixes added | H-2, H-6, ADR-007 | both | ADR-007 accepted; contract §2 updated (code ships in phase 3) (done, step 2) |
-| 1.3 | `packages/core/SOURCE` with the web commit; CI parity against it; scheduled drift report | M-1, ARC-12 | backend | A web merge no longer turns backend CI red; drift reported |
+| 1.3 | `packages/core/SOURCE` with the web commit; CI parity against it; scheduled drift report | M-1, ARC-12 | backend | A web merge no longer turns backend CI red; drift reported (done, step 3; 5 script tests) |
 | 1.4 | Import-rule test: domain cannot import HTTP or infrastructure; modules only through their interface | M-2, ARC-06 | backend | Test fails on a forbidden import |
 | 1.5 | Two negative tests of the session context guard | L-1 | backend | Malformed id and unknown role refused |
 | 1.6 | Docs reflect the code (architecture, database, contract) | Standards | both | Reviewed |
@@ -102,7 +102,7 @@ Planned in the cahier (§21.2) and in the roadmap. Each is broken down into item
 | 5 | The 12 CRM and 12 work features (REL-11–REL-22, WRK-12–WRK-22); settings and lists; leave and balances; operational reports |
 | 6 | Idempotency keys (H-4, F4) before any money command; gap-free numbering; approval rule on quotes and invoices (F1, F2); concurrency and money suites |
 | 7 | Files with allow-list and scanning; e-mail through the outbox; the notice feed (F12); portal sign-in link (F6); console backend; support sessions |
-| 8 | Audit retention (TRL-06); restore test; monitoring and alerts; staging; load test (QAL-01); key rotation; external penetration test |
+| 8 | Audit retention (TRL-06); restore test; monitoring and alerts; staging; load test (QAL-01); key rotation; external penetration test; release procedure deploys web and server from commits whose rules match (ARC-12) |
 
 ## 3. Open decisions for the owner
 

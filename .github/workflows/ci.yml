@@ -38,15 +38,22 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      # The web commit the rules were generated from (ARC-12): a merge in the web
+      # repository does not change this check; the scheduled drift report does.
+      - id: source
+        run: |
+          commit=$(sed -n 's/^commit=\([0-9a-f]\{40\}\)$/\1/p' packages/core/SOURCE)
+          test -n "$commit" || { echo "packages/core/SOURCE has no commit= line. Run npm run sync:core."; exit 1; }
+          echo "commit=$commit" >> "$GITHUB_OUTPUT"
       - uses: actions/checkout@v4
         with:
           repository: yahyanaim/Nexora-Saas
-          ref: main
+          ref: ${{ steps.source.outputs.commit }}
           path: web
       - uses: actions/setup-node@v4
         with:
           node-version-file: .nvmrc
-      - run: node scripts/sync-core.mjs web --check
+      - run: node scripts/sync-core.mjs web --check --at-source
 
   audit:
     name: Dependency audit (SCR-10)

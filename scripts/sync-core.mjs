@@ -9,23 +9,56 @@
  * the API layer, React, translations or any package outside the allow-list is
  * left out, and so is every file that imports it.
  *
- *   node scripts/sync-core.mjs <path to Nexora-Saas> [--check]
+ *   node scripts/sync-core.mjs <path to Nexora-Saas> [--check [--at-source]]
+ *
+ * Writing also records the web commit in packages/core/SOURCE (ARC-12), so the
+ * package always says which version of the rules it holds. The web repository
+ * must be a git checkout whose src/ has no uncommitted change, or that commit
+ * would not reproduce the package.
  *
  * With --check nothing is written: the script exits 1 when packages/core/src
  * differs from what the web repository would produce (CI parity check, ARC-01).
+ * With --at-source it also exits 1 unless the web checkout is at the commit
+ * SOURCE records: CI checks parity against that commit, not the moving main.
+ * Inside GitHub Actions the result is also written to the job summary.
  */
+import { execFileSync } from "node:child_process"
 import fs from "node:fs"
 import path from "node:path"
 
 const args = process.argv.slice(2)
 const check = args.includes("--check")
+const atSource = args.includes("--at-source")
 const webRoot = path.resolve(args.find((a) => !a.startsWith("--")) ?? process.env.WEB_REPO ?? "../Nexora-Saas")
 const webSrc = path.join(webRoot, "src")
-const outSrc = path.resolve(path.dirname(new URL(import.meta.url).pathname), "../packages/core/src")
+// CORE_DIR exists for the script's own tests; normally packages/core.
+const coreDir = path.resolve(process.env.CORE_DIR ?? path.join(path.dirname(new URL(import.meta.url).pathname), "../packages/core"))
+const outSrc = path.join(coreDir, "src")
+const sourceFile = path.join(coreDir, "SOURCE")
 
 if (!fs.existsSync(webSrc)) {
   console.error(`Web repository not found at ${webRoot}`)
   process.exit(2)
+}
+
+function git(...gitArgs) {
+  return execFileSync("git", ["-C", webRoot, ...gitArgs], { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] }).trim()
+}
+/** The web commit checked out, or null when the web repository is not a git checkout. */
+function webCommit() {
+  try {
+    return git("rev-parse", "HEAD")
+  } catch {
+    return null
+  }
+}
+/** The commit packages/core/SOURCE records, or null when there is none. */
+function readSource(text) {
+  const m = /^commit=([0-9a-f]{40})$/m.exec(text ?? "")
+  return m ? m[1] : null
+}
+function summary(lines) {
+  if (process.env.GITHUB_STEP_SUMMARY) fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, lines.join("\n") + "\n")
 }
 
 const SEED_DIRS = ["lib/workforce", "lib/platform", "lib/errors"]
@@ -145,21 +178,39 @@ for (const [rel, text] of files) {
 for (const rel of existing) if (!files.has(rel)) differences.push(`extra    ${rel}`)
 
 const left = [...verdict].filter(([rel, ok]) => ok !== true && seeds.includes(rel))
+const commit = webCommit()
+const recorded = readSource(fs.existsSync(sourceFile) ? fs.readFileSync(sourceFile, "utf8") : null)
+const short = (sha) => (sha ? sha.slice(0, 7) : "unknown")
 if (check) {
-  if (differences.length) {
-    console.error(`packages/core differs from the web repository (${differences.length}):`)
-    for (const d of differences) console.error(`  ${d}`)
-    console.error("Run: npm run sync:core -- <path to Nexora-Saas>")
+  if (atSource && (!recorded || recorded !== commit)) {
+    console.error(recorded ? `The web checkout is at ${short(commit)}, but packages/core/SOURCE records ${short(recorded)}.` : "packages/core/SOURCE is missing or has no commit= line. Run: npm run sync:core -- <path to Nexora-Saas>")
     process.exit(1)
   }
-  console.log(`packages/core matches the web repository: ${files.size} files.`)
+  if (differences.length) {
+    console.error(`packages/core (from ${short(recorded)}) differs from the web repository at ${short(commit)} (${differences.length}):`)
+    for (const d of differences) console.error(`  ${d}`)
+    console.error("Run: npm run sync:core -- <path to Nexora-Saas>")
+    summary([`### Shared rules differ from Nexora-Saas ${short(commit)}`, "", `\`packages/core\` was generated from ${short(recorded)}. Files that differ (${differences.length}):`, "", ...differences.map((d) => `- \`${d.replace(/\s+/, " ")}\``), "", "Run `npm run sync:core -- <path to Nexora-Saas>` and open a pull request."])
+    process.exit(1)
+  }
+  console.log(`packages/core (from ${short(recorded)}) matches the web repository at ${short(commit)}: ${files.size} files.`)
+  summary([`### Shared rules match Nexora-Saas ${short(commit)}`, "", `\`packages/core\` (from ${short(recorded)}): ${files.size} files.`])
 } else {
+  if (!commit) {
+    console.error(`${webRoot} is not a git checkout: packages/core/SOURCE needs the web commit.`)
+    process.exit(2)
+  }
+  if (git("status", "--porcelain", "--", "src")) {
+    console.error("The web repository has uncommitted changes under src/. Commit them (or check out a clean commit) first, so packages/core/SOURCE names a commit that reproduces the package.")
+    process.exit(2)
+  }
   for (const rel of existing) if (!files.has(rel)) fs.rmSync(path.join(outSrc, rel))
   for (const [rel, text] of files) {
     fs.mkdirSync(path.dirname(path.join(outSrc, rel)), { recursive: true })
     fs.writeFileSync(path.join(outSrc, rel), text)
   }
-  console.log(`Wrote ${files.size} files to packages/core/src (${differences.length} changed).`)
+  fs.writeFileSync(sourceFile, `# The Nexora-Saas commit packages/core/src was generated from (ARC-12). Written by npm run sync:core; do not edit.\nrepository=yahyanaim/Nexora-Saas\ncommit=${commit}\n`)
+  console.log(`Wrote ${files.size} files to packages/core/src (${differences.length} changed), from Nexora-Saas ${short(commit)}.`)
   console.log(`Left out ${left.length} seed files:`)
   for (const [rel, why] of left.sort()) console.log(`  ${rel}: ${why}`)
 }

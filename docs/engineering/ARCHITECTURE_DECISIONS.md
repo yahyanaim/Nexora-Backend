@@ -1,12 +1,12 @@
 # Nexora: architecture decisions
 
-_Each decision has a status: **Accepted** (in force, often already in the code), **Proposed** (needs the owner's approval before the phase that uses it) or **Superseded**. The cahier des charges holds the full reasoning; this page is the short register. Last update: 6 November 2026: ADR-007 written into the API contract (Phase 1, step 2). Earlier: 5 November 2026, the owner accepted ADR-004, ADR-005, ADR-007 and ADR-008 (cahier des charges 2.2, decisions E1–E4)._
+_Each decision has a status: **Accepted** (in force, often already in the code), **Proposed** (needs the owner's approval before the phase that uses it) or **Superseded**. The cahier des charges holds the full reasoning; this page is the short register. Last update: 6 November 2026: ADR-003 amendment built (Phase 1, step 3); ADR-007 written into the API contract (step 2). Earlier: 5 November 2026, the owner accepted ADR-004, ADR-005, ADR-007 and ADR-008 (cahier des charges 2.2, decisions E1–E4)._
 
 | # | Decision | Status | Where it lives |
 |---|---|---|---|
 | ADR-001 | Modular monolith | Accepted | Cahier §5 |
 | ADR-002 | PostgreSQL only; isolation by RLS and a role per transaction | Accepted, built | `0001_foundation.sql`, `session.ts` |
-| ADR-003 | Shared rules generated from the web repository | Accepted; amendment accepted (ARC-12) | `sync-core.mjs` |
+| ADR-003 | Shared rules generated from the web repository | Accepted; amendment built (ARC-12, step 3) | `sync-core.mjs`, `packages/core/SOURCE`, `core-drift.yml` |
 | ADR-004 | One error body | Accepted (E1) | Audit H-1; cahier ARC-08, ARC-13 |
 | ADR-005 | Money representation | Accepted (E3) | Audit H-3; cahier §6.3 |
 | ADR-006 | Queue, outbox and scheduler on PostgreSQL | Accepted, built in PR #5 | `src/jobs/*` |
@@ -40,11 +40,11 @@ _Each decision has a status: **Accepted** (in force, often already in the code),
 
 **Decision.** The rules are written once, in `Nexora-Saas`. `scripts/sync-core.mjs` copies the pure ones into `packages/core`, and CI checks parity.
 
-**Amendment (audit M-1, accepted as ARC-12).**
-- `sync:core` writes the source commit to `packages/core/SOURCE`.
-- The CI parity job checks out that commit instead of `main`.
-- A scheduled job reports drift from web `main`.
-- A release deploys the web application and the server from commits whose rules match.
+**Amendment (audit M-1, accepted as ARC-12; built in step 3, 6 November 2026).**
+- `sync:core` writes the source commit to `packages/core/SOURCE`, and refuses a web checkout with uncommitted rule changes. ✅
+- The CI parity job checks out that commit instead of `main` (`--check --at-source`). ✅
+- A scheduled job (`core-drift.yml`, daily and on demand) reports drift from web `main` in its summary. ✅
+- A release deploys the web application and the server from commits whose rules match: written into the release procedure with staging (B2).
 
 **Why.** A merge in the web repository should not turn backend CI red without a backend change, and production must never run two versions of a rule.
 
