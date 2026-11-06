@@ -2,7 +2,7 @@
 
 _This is the only audit file, the same report in `Nexora-Saas` and `Nexora-Backend`. Each new audit, code review or report **replaces** this file in both repositories. Older versions stay in the git history._
 
-**Last update:** 5 November 2026, **Phase 0: repository audit and baseline** of the engineering roadmap.
+**Last update:** 6 November 2026, Phase 1 step 2 (session and CSRF contract). The audit itself is the **Phase 0 repository audit and baseline** of 5 November 2026. Each later step is recorded in **§8 Progress log**, and the findings table marks what is closed.
 **Repositories and commits audited:**
 - `yahyanaim/Nexora-Saas` `main` at `fdca5e7` (after #139)
 - `yahyanaim/Nexora-Backend` `main` at `9d47c35` (after #4), plus the open pull request #5 (B1a step 3, not merged)
@@ -36,7 +36,7 @@ The plan is sound and the code follows it. Two contract mismatches between the r
 | Transactions, audit, outbox, jobs | 🟢 Done in PR #5 | Atomic unit of work, insert-only trails, SKIP LOCKED queue, scheduler, relay, worker; 27 more tests |
 | Identity and permissions on the server | 🔴 Not started | No session, sign-in, membership or permission engine (phase B1b) |
 | Business modules on the server | 🔴 Not started | Only `tenant.workspaces` and `tenant.departments` exist |
-| Front-end ↔ back-end contract | 🟠 Two mismatches | Error body (`details` vs `values`) and session cookie names |
+| Front-end ↔ back-end contract | 🟡 Agreed, partly built (updated 6 November) | Error body agreed and tested on both sides (step 1); sessions, cookies, CSRF and realm paths written into the contract (step 2), code in B1b |
 | Money | 🟡 Sound but float-based | Shared rules compute in JS numbers with a correcting round; the database stores integer centimes |
 
 ## 2. Baseline test results (run on 5 November 2026)
@@ -77,11 +77,12 @@ Severity: **Critical** blocks real use, **High** must be fixed before the phase 
 
 | # | Finding | Where | Why it matters | Recommendation | Phase |
 |---|---|---|---|---|---|
-| H-1 | **Error body mismatch.** The contract and the front end expect `{ code, message, details? }`. The server sends `{ code, values, requestId }`. | Front end `docs/API_CONTRACT.md:74`, `src/lib/errors/translate-error.ts:18-25` (reads `details`); backend `apps/server/src/http/app.ts:62-74`, `src/http/errors.ts` | Values such as `{maxMb}` or `{min}` would be lost in every translated message, and a validation error's field would not reach the form | ADR-004: one canonical body `{ code, values, requestId, message? }`. The front end reads `values`, with `details` accepted during the switch. The contract is updated. A contract test runs on both sides | 1 |
-| H-2 | **Session model mismatch.** The front end's edge guard looks for a cookie named `token` and calls `/auth/refresh`. The cahier names realm cookies `nx_m` / `nx_p` / `nx_s` with a CSRF double-submit, and the front end does not send `X-XSRF-TOKEN` yet (F11). | Front end `src/proxy.ts:58`, `src/lib/myapi/client.ts:23-40`; cahier Table 13, §5.5 step 2 | The first real sign-in would fail at the edge guard, and every write would get `err_csrf` | Decide cookie names and the refresh flow in ADR-007; change `proxy.ts`, the axios XSRF settings and the contract in the same change as B1b's first endpoint | 1 (decision), 3 (code) |
+| H-1 | **Error body mismatch.** The contract and the front end expect `{ code, message, details? }`. The server sends `{ code, values, requestId }`. | Front end `docs/API_CONTRACT.md:74`, `src/lib/errors/translate-error.ts:18-25` (reads `details`); backend `apps/server/src/http/app.ts:62-74`, `src/http/errors.ts` | Values such as `{maxMb}` or `{min}` would be lost in every translated message, and a validation error's field would not reach the form | ADR-004: one canonical body `{ code, values, requestId, message? }`. The front end reads `values`, with `details` accepted during the switch. The contract is updated. A contract test runs on both sides | 1. **Closed (step 1)** |
+| H-2 | **Session model mismatch.** The front end's edge guard looks for a cookie named `token` and calls `/auth/refresh`. The cahier names realm cookies `nx_m` / `nx_p` / `nx_s` with a CSRF double-submit, and the front end does not send `X-XSRF-TOKEN` yet (F11). | Front end `src/proxy.ts:58`, `src/lib/myapi/client.ts:23-40`; cahier Table 6, §5.5 step 2 | The first real sign-in would fail at the edge guard, and every write would get `err_csrf` | Decide cookie names and the refresh flow in ADR-007; change `proxy.ts`, the axios XSRF settings and the contract in the same change as B1b's first endpoint | 1 (decision), 3 (code). **Decision and contract done (step 2)**; code in B1b |
 | H-3 | **Money is computed in JS numbers.** `roundMoney` corrects float error and rounds half away from zero. 22 shared rule files (tests excluded) use it and reach the server. The database stores `bigint` centimes. | Front end `src/lib/workforce/money.ts:8-30`; backend `packages/core/src/lib/workforce/money.ts`; cahier §6.3 | Results are deterministic (same IEEE arithmetic everywhere), but every conversion between centimes and numbers is a place for an off-by-one-centime error in totals, VAT or allocations | ADR-005: convert only at the repository edge (`toCents` / `fromCents` in one adapter); property tests that line sums, VAT and allocations match integer recomputation; consider integer-cent signatures for the core money functions before B1d | 6 (tests from 4) |
 | H-4 | **No idempotency keys.** Commands that create numbers, money or files are not protected against double submission (TRX-04, front-end item F4). | Neither repository has `ops.idempotency_keys` or an `Idempotency-Key` header | A double click or retry could issue two invoices or record two payments | Build the table, middleware and front-end header before the first money command | 6 (before B1d) |
 | H-5 | **Optimistic locking not wired end to end.** The database bumps `version` and a test proves first-save-wins. But there is no command helper returning `CONFLICT_STALE_VERSION`, and the front end does not send `version` (F5). | Backend `0001_foundation.sql` `stamp_row`, `database.test.ts` "optimistic lock"; front-end item F5 | Two editors would silently overwrite each other | A repository helper that updates `WHERE version = $n` and maps 0 rows to the error; F5 in the slice | 4 |
+| H-6 | **Realm prefixes missing from the contract** (found in step 2). The cahier puts every path under its realm and version (`/app/v1/…`, `/app/v1/workspaces/:wid/…`, `/portal/v1/…`, `/platform/v1/…`; ARC-07, B4, Table 6). The contract only proposed `/workspaces/:wid/…`, and the front end calls bare paths. The cahier's decision E2 also pointed to Table 13 instead of Table 6. | Front end `docs/API_CONTRACT.md` §2 (Base URL, Workspace scope), `src/lib/myapi/client.ts`; cahier Table 1d E2 | The first real endpoint would not be found, and a cookie scoped to a realm path would not be sent | Write the prefixes into the contract; the client adds them in one place when B1b switches the cookies; correct the cahier's reference | 1 (contract). **Closed for the docs (step 2)**; code in B1b |
 
 ### 4.3 Medium
 
@@ -128,7 +129,7 @@ The mapping of every roadmap phase onto the cahier's phases, with each open item
 | Done | Not done |
 |---|---|
 | Every screen and workflow of the front end, on demo data | Any business data on the server |
-| Error catalogue (432 keys) and 9 languages | One agreed error body (H-1) |
+| Error catalogue (432 keys) and 9 languages; one agreed error body (H-1, step 1); session and CSRF contract (H-2, H-6, step 2) | Session code on both sides (B1b) |
 | Database: schemas, roles, RLS, migrations, stamps | Sign-in, sessions, CSRF, memberships, permissions (B1b) |
 | Unit of work, audit trails, outbox, queue, scheduler, worker (PR #5, open) | Idempotency keys (H-4), optimistic-lock helper (H-5) |
 | Shared rules with parity check | Pinned rule version (M-1), import-rule test (M-2) |
@@ -154,3 +155,15 @@ New requirements:
 
 Phase B1a now includes the contract and foundation hardening (4 weeks). The plan is 28 weeks, about 35 with contingency. The next six pull requests are listed in `docs/engineering/EXECUTION_TRACKER.md` (Phase 1).
 
+## 8. Progress log
+
+Every step of the plan adds a row here, in both repositories, with its pull requests and the tests run before the merge. The tracker (`docs/engineering/EXECUTION_TRACKER.md`) shows what is next.
+
+| Date | Step | Pull requests | What changed | Tests before merge | State |
+|---|---|---|---|---|---|
+| 5 Nov 2026 | Phase 0: audit and baseline | Nexora-Backend #5, Nexora-Saas #140 | This audit; inventory, decisions and tracker in `docs/engineering/`; B1a step 3 (unit of work, audit trails, outbox, queue, worker) merged with it | Front end 870; server 69 + core 136 on PostgreSQL 16; CI green | ✅ merged |
+| 5 Nov 2026 | Cahier des charges 2.2 | Nexora-Backend #6, Nexora-Saas #141 | Decisions E1–E5; ARC-12, ARC-13, JOB-09; B1a 4 weeks; §21.5 (standards, definition of done); audit §7 and README | Docs only; CI green | ✅ merged |
+| 5–6 Nov 2026 | Phase 1, step 1: one error body (E1, H-1) | Nexora-Saas #142, Nexora-Backend #7 | Server: `error-body.ts` with the body `{ code, values, requestId, message? }` and its contract test. Front end: `translateError` reads `values` (still `details` during the switch); contract §2. `packages/core` synced after the web merge | Front end 871; server 72 + core 136; CI green on both | ✅ merged |
+| 6 Nov 2026 | Phase 1, step 2: session and CSRF contract (E2, H-2, H-6) | Nexora-Saas and Nexora-Backend, step 2 PRs | Contract §2: realm and version paths, cookies `nx_m` / `nx_p` / `nx_s` with their limits, 15-minute access cookie and rotating refresh, `X-XSRF-TOKEN` and `Origin` check, edge guard, the list of files switched with B1b. ADR-007 written out; cahier E2 now points to Table 6; finding H-6 added; tracker and inventory updated | Docs only; server 72 + core 136 re-run; CI | 🔄 open, waits for the owner |
+
+**Next:** step 3, pinned shared rules (ARC-12, M-1), after the owner's go.

@@ -1,6 +1,6 @@
 # Nexora: execution tracker
 
-_The engineering roadmap (phases 0–8) laid onto the delivery plan of the cahier des charges (phases B1a–B3, §21.2), with every open item. One phase is approved and worked at a time; each ends with its gate, tests and an updated inventory. Last update: 5 November 2026: Phase 0 approved; decisions E1–E5 in the cahier des charges 2.2 (§1.2, §21.5)._
+_The engineering roadmap (phases 0–8) laid onto the delivery plan of the cahier des charges (phases B1a–B3, §21.2), with every open item. One phase is approved and worked at a time; each ends with its gate, tests and an updated inventory. Last update: 6 November 2026: Phase 1 steps 1 (merged) and 2 (open). Earlier: 5 November 2026, Phase 0 approved; decisions E1–E5 in the cahier des charges 2.2 (§1.2, §21.5). The step-by-step log is §8 of `docs/AUDIT.md`._
 
 **Legend:**
 - ✅ done
@@ -14,7 +14,7 @@ _The engineering roadmap (phases 0–8) laid onto the delivery plan of the cahie
 | Roadmap phase | Cahier phase | Content | Estimate | State |
 |---|---|---|---|---|
 | 0 Audit and baseline | — | This audit, inventory, decisions, tracker | 1 day | ✅ approved, merged (#5, Nexora-Saas #140) |
-| 1 Contract and foundation hardening | B1a step 4 | Error body (E1), session contract (E2), pinned rules (ARC-12), import-rule test, contract tests (ARC-13) | 1 week | ⏳ next, 🔒 waits for go |
+| 1 Contract and foundation hardening | B1a step 4 | Error body (E1), session contract (E2), pinned rules (ARC-12), import-rule test, contract tests (ARC-13) | 1 week | 🔄 steps 1 ✅ (#7, Nexora-Saas #142), 2 🔄 |
 | 2 Database, transactions, audit, workers | B1a steps 2–4 | Steps 2 and 3 merged (#3, #5); close-out and exit gate (heartbeat, seal, guard, privilege and audit suites) | 0.5 week left | 🔄 |
 | 3 Identity, authentication, authorization | B1b | Sessions, sign-in, CSRF, memberships, roles, permission engine, step-up, devices | 2–3 weeks | ⬜ |
 | 4 First vertical slice | B1c (part) | Client → project → member → time → submit → approve, end to end | 2–3 weeks | ⬜ |
@@ -36,24 +36,24 @@ The total agrees with the cahier (27 weeks, about 34 with 25% contingency) and w
 | `IMPLEMENTATION_INVENTORY.md`, `ARCHITECTURE_DECISIONS.md`, `EXECUTION_TRACKER.md` | ✅ |
 | Baseline tests recorded (870 front end; 42 / 69 server; 136 core) | ✅ |
 
-### Phase 1: Contract and foundation hardening ⏳
+### Phase 1: Contract and foundation hardening 🔄
 
 Done in six pull requests, in this order, each with its own tests and checks; the last one closes phase B1a.
 
-| PR | Items |
-|---|---|
-| 1 | 1.1 error body (both repositories) |
-| 2 | 1.2 session and CSRF contract (docs, both repositories) |
-| 3 | 1.3 pinned shared rules |
-| 4 | 1.4 import-rule test and 1.5 session guard tests |
-| 5 | 2.3 worker heartbeat and 2.4 audit seal |
-| 6 | 2.5 B1a exit gate and 1.6 docs |
+| PR | Items | State |
+|---|---|---|
+| 1 | 1.1 error body (both repositories) | ✅ merged (#7, Nexora-Saas #142) |
+| 2 | 1.2 session and CSRF contract (docs, both repositories) | 🔄 open, waits for the owner |
+| 3 | 1.3 pinned shared rules | ⬜ |
+| 4 | 1.4 import-rule test and 1.5 session guard tests | ⬜ |
+| 5 | 2.3 worker heartbeat and 2.4 audit seal | ⬜ |
+| 6 | 2.5 B1a exit gate and 1.6 docs | ⬜ |
 
 
 | # | Item | Source | Repository | Acceptance |
 |---|---|---|---|---|
 | 1.1 | Error body `{ code, values, requestId, message? }`; front end reads `values` (and `details` during the switch); contract §2 updated | H-1, ADR-004 | both | Contract test passes on both sides; translated values shown (done, step 1) |
-| 1.2 | Session cookie names, refresh flow and CSRF header decided and written into the contract | H-2, ADR-007 | both | ADR-007 accepted; contract §2 updated (code ships in phase 3) |
+| 1.2 | Session cookie names, refresh flow and CSRF header decided and written into the contract; realm and version path prefixes added | H-2, H-6, ADR-007 | both | ADR-007 accepted; contract §2 updated (code ships in phase 3) (done, step 2) |
 | 1.3 | `packages/core/SOURCE` with the web commit; CI parity against it; scheduled drift report | M-1, ARC-12 | backend | A web merge no longer turns backend CI red; drift reported |
 | 1.4 | Import-rule test: domain cannot import HTTP or infrastructure; modules only through their interface | M-2, ARC-06 | backend | Test fails on a forbidden import |
 | 1.5 | Two negative tests of the session context guard | L-1 | backend | Malformed id and unknown role refused |
@@ -74,7 +74,7 @@ Done in six pull requests, in this order, each with its own tests and checks; th
 | # | Item | Source |
 |---|---|---|
 | 3.1 | Realm sessions (access and rotating refresh tokens, hashed), sign-in, sign-out, lockout, password rules (12+, breached check) | IAM-01–IAM-10 |
-| 3.2 | CSRF double-submit and `Origin` check; front end sends `X-XSRF-TOKEN` | SCR-16, F11 |
+| 3.2 | CSRF double-submit and `Origin` check; front end sends `X-XSRF-TOKEN`; realm routers and cookies, `client.ts`, `proxy.ts` and the mock API switched together (contract §2, ADR-007 "Shipping") | SCR-16, F11, H-6 |
 | 3.3 | Workspaces, memberships, workspace switch, owner rules | WSP, F8 |
 | 3.4 | Roles and permission engine; actor only from the session; record rules | AUZ, IAM-01 |
 | 3.5 | Second factor, step-up for sensitive actions, sessions list and administrator revoke | IAM-05, IAM-06, IAM-19, F3, F7 |
