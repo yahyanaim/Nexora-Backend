@@ -1,6 +1,6 @@
 # Nexora: execution tracker
 
-_The engineering roadmap (phases 0–8) laid onto the delivery plan of the cahier des charges (phases B1a–B3, §21.2), with every open item. One phase is approved and worked at a time; each ends with its gate, tests and an updated inventory. Last update: 6 November 2026: Phase 1 steps 1 to 5 merged; step 6, the B1a exit gate, open (10 November 2026). Earlier: 5 November 2026, Phase 0 approved; decisions E1–E5 in the cahier des charges 2.2 (§1.2, §21.5). The step-by-step log is §8 of `docs/AUDIT.md`._
+_The engineering roadmap (phases 0–8) laid onto the delivery plan of the cahier des charges (phases B1a–B3, §21.2), with every open item. One phase is approved and worked at a time; each ends with its gate, tests and an updated inventory. Last update: 6 November 2026: Phase 1 steps 1 to 6 merged: **B1a complete** (10 November 2026). Next: B1b. Earlier: 5 November 2026, Phase 0 approved; decisions E1–E5 in the cahier des charges 2.2 (§1.2, §21.5). The step-by-step log is §8 of `docs/AUDIT.md`._
 
 **Legend:**
 - ✅ done
@@ -14,9 +14,9 @@ _The engineering roadmap (phases 0–8) laid onto the delivery plan of the cahie
 | Roadmap phase | Cahier phase | Content | Estimate | State |
 |---|---|---|---|---|
 | 0 Audit and baseline | — | This audit, inventory, decisions, tracker | 1 day | ✅ approved, merged (#5, Nexora-Saas #140) |
-| 1 Contract and foundation hardening | B1a step 4 | Error body (E1), session contract (E2), pinned rules (ARC-12), import-rule test, contract tests (ARC-13) | 1 week | 🔄 steps 1 ✅ (#7, Nexora-Saas #142), 2 ✅ (#8, Nexora-Saas #143), 3 ✅ (#9, Nexora-Saas #144), 4 ✅ (#10, Nexora-Saas #145), 5 ✅ (#11, Nexora-Saas #146), 6 🔄 (exit gate) |
-| 2 Database, transactions, audit, workers | B1a steps 2–4 | Steps 2 and 3 merged (#3, #5); heartbeat and seals (#11); exit gate in step 6 | — | 🔄 step 6 open |
-| 3 Identity, authentication, authorization | B1b | Sessions, sign-in, CSRF, memberships, roles, permission engine, step-up, devices | 2–3 weeks | ⬜ |
+| 1 Contract and foundation hardening | B1a step 4 | Error body (E1), session contract (E2), pinned rules (ARC-12), import-rule test, contract tests (ARC-13) | 1 week | ✅ steps 1–6 merged (#7–#12, Nexora-Saas #142–#147) |
+| 2 Database, transactions, audit, workers | B1a steps 2–4 | Steps 2 and 3 (#3, #5); heartbeat and seals (#11); exit gate (#12) | — | ✅ B1a gate passed |
+| 3 Identity, authentication, authorization | B1b | Sessions, sign-in, CSRF, memberships, roles, permission engine, step-up, devices | 2–3 weeks | ⏳ next, 🔒 waits for go |
 | 4 First vertical slice | B1c (part) | Client → project → member → time → submit → approve, end to end | 2–3 weeks | ⬜ |
 | 5 Core ERP modules | B1c (rest), B1e (reporting) | Settings, people, CRM features, work features, leave, operational reports | 5–6 weeks | ⬜ |
 | 6 Financial domain | B1d | Money adapter and property tests, idempotency, quotes, invoices, numbering, payments, VAT, journal | 4–5 weeks | ⬜ |
@@ -36,7 +36,7 @@ The total agrees with the cahier (27 weeks, about 34 with 25% contingency) and w
 | `IMPLEMENTATION_INVENTORY.md`, `ARCHITECTURE_DECISIONS.md`, `EXECUTION_TRACKER.md` | ✅ |
 | Baseline tests recorded (870 front end; 42 / 69 server; 136 core) | ✅ |
 
-### Phase 1: Contract and foundation hardening 🔄
+### Phase 1: Contract and foundation hardening ✅
 
 Done in six pull requests, in this order, each with its own tests and checks; the last one closes phase B1a.
 
@@ -47,7 +47,7 @@ Done in six pull requests, in this order, each with its own tests and checks; th
 | 3 | 1.3 pinned shared rules | ✅ merged (#9, Nexora-Saas #144) |
 | 4 | 1.4 import-rule test and 1.5 session guard tests; security plan | ✅ merged (#10, Nexora-Saas #145) |
 | 5 | 2.3 worker heartbeat and 2.4 audit seal | ✅ merged (#11, Nexora-Saas #146) |
-| 6 | 2.5 B1a exit gate, 2.6 supply-chain and SQL checks, 1.6 docs | 🔄 open, waits for the owner |
+| 6 | 2.5 B1a exit gate, 2.6 supply-chain and SQL checks, 1.6 docs | ✅ merged (#12, Nexora-Saas #147) |
 
 
 | # | Item | Source | Repository | Acceptance |
@@ -59,7 +59,7 @@ Done in six pull requests, in this order, each with its own tests and checks; th
 | 1.5 | Two negative tests of the session context guard | L-1 | backend | Malformed id and unknown role refused (done, step 4: 9 cases, no connection taken) |
 | 1.6 | Docs reflect the code (architecture, database, contract) | Standards | both | Reviewed (done, step 6: stale statements fixed in both READMEs, architecture, database, decisions and inventory) |
 
-### Phase 2: Database, transactions, audit, workers 🔄
+### Phase 2: Database, transactions, audit, workers ✅
 
 | # | Item | Source | State |
 |---|---|---|---|
@@ -70,7 +70,7 @@ Done in six pull requests, in this order, each with its own tests and checks; th
 | 2.5 | Exit gate (B1a step 4): guard suite, privilege suite, audit secret scan (TRL-04) | Cahier B1a gate | ✅ step 6: `privileges.test.ts`, `audit-secrets.test.ts` (with migration 0008), guard tests listed in the inventory |
 | 2.6 | Security plan G-1 to G-4: actions pinned to a commit, secret scan in CI, Dependabot security updates, a test that refuses string-built SQL | `SECURITY_PLAN.md`; SCR-02, SCR-06, SCR-10 | ✅ step 6 (both repositories); the owner switches on GitHub secret scanning and Dependabot security updates in the settings |
 
-### Phase 3: Identity, authentication, authorization (B1b) ⬜
+### Phase 3: Identity, authentication, authorization (B1b) ⏳
 
 | # | Item | Source |
 |---|---|---|
