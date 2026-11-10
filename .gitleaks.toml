@@ -1,0 +1,14 @@
+# Secret scan of the repository (cahier SCR-06; security plan G-2). Run by the
+# "Secret scan" CI job with gitleaks' default rules.
+title = "Nexora secret scan"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Test files and the lock file: fixtures and package hashes, never a real secret"
+paths = [
+  '''(^|/)[^/]*\.test\.(ts|tsx|mjs)$''',
+  '''(^|/)e2e/''',
+  '''(^|/)package-lock\.json$''',
+]

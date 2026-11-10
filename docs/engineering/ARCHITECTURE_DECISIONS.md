@@ -9,7 +9,7 @@ _Each decision has a status: **Accepted** (in force, often already in the code),
 | ADR-003 | Shared rules generated from the web repository | Accepted; amendment built (ARC-12, step 3) | `sync-core.mjs`, `packages/core/SOURCE`, `core-drift.yml` |
 | ADR-004 | One error body | Accepted (E1) | Audit H-1; cahier ARC-08, ARC-13 |
 | ADR-005 | Money representation | Accepted (E3) | Audit H-3; cahier §6.3 |
-| ADR-006 | Queue, outbox and scheduler on PostgreSQL | Accepted, built in PR #5 | `src/jobs/*` |
+| ADR-006 | Queue, outbox and scheduler on PostgreSQL | Accepted, built (#5; heartbeat and seal jobs in #11) | `src/jobs/*` |
 | ADR-007 | Same-origin sessions, realm cookies, CSRF double-submit | Accepted (D1, E2); contract written (step 2) | Cahier D1, E2, Table 6; API contract §2; audit H-2, H-6 |
 | ADR-008 | Vertical slice before module expansion | Accepted (E4) | Cahier §21.2, §21.5 |
 | ADR-009 | One audit file, one execution tracker | Accepted | `CLAUDE.md` of both repositories |
@@ -94,7 +94,7 @@ Conversion happens in **one adapter** at the repository edge (`toCents` / `fromC
 - The outbox written in the command's transaction and relayed at least once into idempotent jobs.
 - One scheduler at a time (advisory lock).
 
-**Status.** Built in PR #5 (`src/jobs/*`, `src/worker/*`).
+**Status.** Built in #5 (`src/jobs/*`, `src/worker/*`); the worker heartbeat and the audit seal and verify jobs were added in #11.
 
 ## ADR-007 Same-origin sessions, realm cookies, CSRF double-submit
 

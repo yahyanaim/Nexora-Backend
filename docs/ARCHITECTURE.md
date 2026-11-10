@@ -46,7 +46,7 @@ The rules are written once, in the web repository (`src/lib/workforce`, `src/lib
 
 ## 3. The server: `apps/server`
 
-### 3.1 Built today (B1a steps 1 to 3, Phase 1 steps 1 to 4)
+### 3.1 Built today (B1a complete: steps 1 to 3 and Phase 1 steps 1 to 6)
 
 | Part | File | What it does | Requirements |
 |---|---|---|---|
@@ -65,6 +65,8 @@ The rules are written once, in the web repository (`src/lib/workforce`, `src/lib
 | Heartbeat | `src/jobs/heartbeat.ts` | A timer, apart from the turns, writes the worker's row with the queue metrics every 30 s and logs them; a clean stop is recorded. `workerHealth()` lists live and missing workers for the operations page and the alert | JOB-07, JOB-09, QAL-08 |
 | Audit seals | `migrations/0007_heartbeats_seals.sql`, `src/jobs/audit-seal.ts` | `audit.seal` every 5 minutes, `audit.verify` every day: hash chains over the three trails; any change, removal or insertion is reported, and the verify job stays failed while a chain is broken | TRL-05 |
 | Import rules | `src/architecture/import-rules.ts` | The architecture test reads every source file and fails on a forbidden import: the rules are in §3.3 | ARC-02, ARC-06 |
+| SQL rule | `src/architecture/sql-rules.ts` | Fails on a `query(…)` whose SQL is a template literal with `${…}` or a string joined with `+`; the one reviewed exception (`SET LOCAL ROLE` from the closed role list) is listed with its reason | SCR-02 |
+| CI security jobs | `.github/workflows/ci.yml`, `.github/dependabot.yml`, `.gitleaks.toml` | Every action pinned to a commit; a secret scan (gitleaks, release checked by SHA-256) on every pull request; weekly grouped dependency updates; the dependency audit fails on a high finding | SCR-06, SCR-10 |
 
 ### 3.2 Target shape (cahier des charges §5)
 
@@ -124,7 +126,8 @@ Another module's domain, ports or infrastructure is never imported: modules talk
 | B1a | Repository, `packages/core`, skeleton, CI | ✅ Step 1 |
 | B1a | PostgreSQL schemas and roles, migrations, row-level security | ✅ Step 2 |
 | B1a | Unit of work, audit, outbox, job queue, worker | ✅ Step 3 |
-| B1a | **[2.2]** Contract and foundation hardening; guard, privilege and audit suites (exit gate) | Next |
+| B1a | **[2.2]** Contract and foundation hardening (Phase 1 steps 1–5); guard, privilege and audit suites (exit gate, step 6) | ✅ |
+| B1b | Identity, sessions, CSRF, memberships, permissions | Next |
 | B1b–B3 | Identity, modules, money, analytics, console, operations, security tests | Planned (cahier des charges §21.2) |
 
 ## 5. Commands
