@@ -47,7 +47,7 @@ Done in six pull requests, in this order, each with its own tests and checks; th
 | 3 | 1.3 pinned shared rules | ✅ merged (#9, Nexora-Saas #144) |
 | 4 | 1.4 import-rule test and 1.5 session guard tests | 🔄 open, waits for the owner |
 | 5 | 2.3 worker heartbeat and 2.4 audit seal | ⬜ |
-| 6 | 2.5 B1a exit gate and 1.6 docs | ⬜ |
+| 6 | 2.5 B1a exit gate, 2.6 supply-chain and SQL checks, 1.6 docs | ⬜ |
 
 
 | # | Item | Source | Repository | Acceptance |
@@ -68,6 +68,7 @@ Done in six pull requests, in this order, each with its own tests and checks; th
 | 2.3 | Worker heartbeat and metrics log (queue depth, oldest due, dead, outbox lag) | M-3, JOB-09 | ⬜ |
 | 2.4 | Audit seal and verify jobs (`audit.seals`) | M-4, TRL-05 | ⬜ |
 | 2.5 | Exit gate (B1a step 4): guard suite, privilege suite, audit secret scan (TRL-04) | Cahier B1a gate | ⬜ |
+| 2.6 | Security plan G-1 to G-4: actions pinned to a commit, secret scan in CI, Dependabot security updates, a test that refuses string-built SQL | `SECURITY_PLAN.md`; SCR-02, SCR-06, SCR-10 | ⬜ |
 
 ### Phase 3: Identity, authentication, authorization (B1b) ⬜
 
@@ -78,7 +79,8 @@ Done in six pull requests, in this order, each with its own tests and checks; th
 | 3.3 | Workspaces, memberships, workspace switch, owner rules | WSP, F8 |
 | 3.4 | Roles and permission engine; actor only from the session; record rules | AUZ, IAM-01 |
 | 3.5 | Second factor, step-up for sensitive actions, sessions list and administrator revoke | IAM-05, IAM-06, IAM-19, F3, F7 |
-| 3.6 | Access log with workspace and principal | M-5, QAL-07 |
+| 3.6 | Access log with workspace and principal; personal data redacted from logs (G-6) | M-5, QAL-07 |
+| 3.7 | Security plan G-5 and G-7: TLS required for the production database; proxy hop count from configuration | `SECURITY_PLAN.md`; SCR-01 |
 | Gate | Isolation and permission suites green; sign-in works end to end from the existing screens | Cahier B1b |
 
 ### Phase 4: First vertical slice ⬜

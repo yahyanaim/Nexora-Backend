@@ -144,5 +144,5 @@ It uses the existing screens, React Query invalidation, optimistic locking (F5),
 | Document | Where | Rule |
 |---|---|---|
 | Audit | `docs/AUDIT.md`, the same report in both repositories | Replaced, never added to |
-| Engineering documents (inventory, decisions, tracker) | `Nexora-Backend/docs/engineering/` | Updated with each phase |
+| Engineering documents (inventory, decisions, tracker, security plan) | `Nexora-Backend/docs/engineering/` | Updated with each phase |
 | Screenshots | `docs/screenshots/` (audits and steps) and `documentation/screenshots/` (user manual) | — |
