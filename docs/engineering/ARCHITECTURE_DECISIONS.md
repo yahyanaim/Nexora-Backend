@@ -1,6 +1,6 @@
 # Nexora: architecture decisions
 
-_Each decision has a status: **Accepted** (in force, often already in the code), **Proposed** (needs the owner's approval before the phase that uses it) or **Superseded**. The cahier des charges holds the full reasoning; this page is the short register. Last update: 6 November 2026: ADR-003 amendment built (Phase 1, step 3); ADR-007 written into the API contract (step 2). Earlier: 5 November 2026, the owner accepted ADR-004, ADR-005, ADR-007 and ADR-008 (cahier des charges 2.2, decisions E1–E4)._
+_Each decision has a status: **Accepted** (in force, often already in the code), **Proposed** (needs the owner's approval before the phase that uses it) or **Superseded**. The cahier des charges holds the full reasoning; this page is the short register. Last update: 10 November 2026: ADR-001 import-rule test built (Phase 1, step 4). 6 November 2026: ADR-003 amendment built (step 3); ADR-007 written into the API contract (step 2). Earlier: 5 November 2026, the owner accepted ADR-004, ADR-005, ADR-007 and ADR-008 (cahier des charges 2.2, decisions E1–E4)._
 
 | # | Decision | Status | Where it lives |
 |---|---|---|---|
@@ -22,7 +22,7 @@ _Each decision has a status: **Accepted** (in force, often already in the code),
 
 **Why.** One developer, the capacity of cahier Table 4, and the cost of running several services.
 
-**Consequence.** Module boundaries must be enforced in code: the import-rule test (audit M-2).
+**Consequence.** Module boundaries must be enforced in code: the import-rule test (audit M-2), built in Phase 1 step 4 (`src/architecture/import-rules.ts`; the rules are in `docs/ARCHITECTURE.md` §3.3).
 
 ## ADR-002 PostgreSQL only; isolation by RLS and a role per transaction
 
@@ -144,5 +144,5 @@ It uses the existing screens, React Query invalidation, optimistic locking (F5),
 | Document | Where | Rule |
 |---|---|---|
 | Audit | `docs/AUDIT.md`, the same report in both repositories | Replaced, never added to |
-| Engineering documents (inventory, decisions, tracker) | `Nexora-Backend/docs/engineering/` | Updated with each phase |
+| Engineering documents (inventory, decisions, tracker, security plan) | `Nexora-Backend/docs/engineering/` | Updated with each phase |
 | Screenshots | `docs/screenshots/` (audits and steps) and `documentation/screenshots/` (user manual) | — |
