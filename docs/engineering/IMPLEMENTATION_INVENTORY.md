@@ -1,6 +1,6 @@
 # Nexora: implementation inventory
 
-_The real state of every part of Nexora, from the code, not from the plan. Updated with each phase. Audit of 5 November 2026: Nexora-Saas `fdca5e7`, Nexora-Backend `9d47c35` plus PR #5. Updated 6 November 2026 after Phase 1 steps 1 to 3._
+_The real state of every part of Nexora, from the code, not from the plan. Updated with each phase. Audit of 5 November 2026: Nexora-Saas `fdca5e7`, Nexora-Backend `9d47c35` plus PR #5. Updated 10 November 2026 after Phase 1 steps 1 to 4._
 
 **Legend:**
 - ✅ built and tested
@@ -28,7 +28,8 @@ _The real state of every part of Nexora, from the code, not from the plan. Updat
 | Worker health, metrics output | ⬜ (`queueStats` only) | `src/jobs/queue.ts` | QAL-08, JOB-07 | — |
 | Idempotency keys | ⬜ | — | TRX-04 | — |
 | Optimistic-lock helper (`CONFLICT_STALE_VERSION`) | 🟡 (database part only) | `stamp_row` | TRX-06, DAT-11 | `database.test.ts` |
-| Import-rule (architecture boundary) test | ⬜ | — | ARC-06 | — |
+| Import-rule (architecture boundary) test | ✅ | `src/architecture/import-rules.ts` | ARC-02, ARC-06 | `import-rules.test.ts` (7) |
+| Session context guard (UUID ids, closed role list) | ✅ | `src/db/session.ts` | TEN-05 | `session.test.ts` (9 cases) |
 | Access log with workspace and principal | ⬜ | — | QAL-07 | — |
 
 ## 2. Business modules (cahier §5.3)
@@ -78,8 +79,8 @@ The front-end column counts the API modules in `Nexora-Saas/src/lib/api` (56 in 
 | Front-end unit and component tests | 143 files, 870 tests | Local and CI |
 | Front-end end to end (Playwright, mock API) | CI job "End-to-end" | CI |
 | Front-end accessibility (axe, console and company pages) | CI job | CI |
-| Back-end server tests | 72 on `main` after step 1 (database suites on real PostgreSQL 16) | Local with `TEST_DATABASE_ADMIN_URL`; always in CI |
+| Back-end server tests | 88 after step 4 (72 after step 1) (database suites on real PostgreSQL 16) | Local with `TEST_DATABASE_ADMIN_URL`; always in CI |
 | Back-end script tests (`sync-core.mjs`: pin, drift, refusals) | 5 (step 3) | Local and CI (`npm test`) |
 | Back-end core rule tests | 136 | Local and CI |
 | Contract tests front end ↔ back end | 🟡 error body (same example on both sides); session cookies and `err_csrf` with B1b; module shapes come with each module | Local and CI |
-| Guard, privilege and audit suites (B1a exit gate) | 🟡 privilege and isolation tests exist; import-rule test and audit secret scan missing | — |
+| Guard, privilege and audit suites (B1a exit gate) | 🟡 privilege and isolation tests, import-rule test and session guard tests exist; audit secret scan missing (step 6) | — |

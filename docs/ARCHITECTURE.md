@@ -46,7 +46,7 @@ The rules are written once, in the web repository (`src/lib/workforce`, `src/lib
 
 ## 3. The server: `apps/server`
 
-### 3.1 Built today (B1a steps 1 to 3)
+### 3.1 Built today (B1a steps 1 to 3, Phase 1 steps 1 to 4)
 
 | Part | File | What it does | Requirements |
 |---|---|---|---|
@@ -62,6 +62,7 @@ The rules are written once, in the web repository (`src/lib/workforce`, `src/lib
 | Scheduler | `src/jobs/scheduler.ts` | Recurring jobs of `ops.schedules`; one scheduler at a time (advisory lock); each run enqueued once | JOB-04 |
 | Outbox relay | `src/jobs/outbox-relay.ts` | Turns each event into the jobs its route asks for, at least once, with a dedupe key per event and job, so a second delivery adds nothing | TRX-05, NTF-01 |
 | Worker | `src/worker/worker.ts` | Each turn: put back expired leases, run the scheduler, relay the outbox, run one job. Tenant work of a job runs under `nx_app` in its workspace as `system:<job>` | JOB-03, JOB-08 |
+| Import rules | `src/architecture/import-rules.ts` | The architecture test reads every source file and fails on a forbidden import: the rules are in §3.3 | ARC-02, ARC-06 |
 
 ### 3.2 Target shape (cahier des charges §5)
 
@@ -94,6 +95,24 @@ Interactive version: [layers of a module](diagrams/module-layers.html).
 **Database** (§6): PostgreSQL 16, six schemas (`identity`, `tenant`, `platform`, `ops`, `audit`, `archive`), separate roles (`nx_app`, `nx_portal`, `nx_platform`, `nx_support`, `nx_dataops`…), composite tenant keys, forced row-level security, money in centimes, gap-free numbering from locked sequence rows, append-only audit.
 
 **Processes**: the same Docker image runs as the **web** process and as the **worker** process (jobs, scheduler, outbox relay).
+
+### 3.3 Import rules (ARC-02, ARC-06)
+
+`src/architecture/import-rules.test.ts` checks every file of `src` on each run of the tests; a forbidden import fails the build. Tests and `testing/` folders may import anything, but production code never imports them. A file outside the folders below fails too, so a new folder must be given its rules.
+
+| Where | May import | Never |
+|---|---|---|
+| `config/` | `zod`, Node | any other server folder |
+| `db/` | `config`, `pg`, Node | `http`, jobs, worker, Express, business modules |
+| `http/` | `config`, Express, `pino`, `zod`, Node; a module only through `modules/<name>/application/index.ts` | `pg`, `db`, jobs, worker |
+| `jobs/`, `worker/` | each other, `db`, `config`, `pg`, `pino`; a module only through its interface | `http`, Express |
+| `main.ts`, `worker-main.ts` | anything (composition roots) | — |
+| `modules/<m>/domain/` | its own domain, `@nexora/core`, `zod` | Node, Express, `pg`, every other layer and folder |
+| `modules/<m>/ports/` | its domain and ports, `@nexora/core`, `zod` | the same |
+| `modules/<m>/application/` | its domain, ports and application; `db/session`, `db/unit-of-work`, `db/uuid`; another module's `application/index.ts` | Node, Express, `pg`, infrastructure, `http` |
+| `modules/<m>/infrastructure/` | its own layers, `db`, any package; another module's `application/index.ts` | `http` |
+
+Another module's domain, ports or infrastructure is never imported: modules talk through application interfaces or the outbox. The first module folders arrive with the vertical slice (B1c); the rules are already enforced so they start inside them.
 
 ## 4. Delivery
 

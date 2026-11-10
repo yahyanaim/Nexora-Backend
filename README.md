@@ -22,7 +22,7 @@ The API contract the server follows is `docs/API_CONTRACT.md` in the web reposit
 | Folder | What it holds |
 |---|---|
 | `packages/core` | The business rules, types and error catalogue, **generated** from the web repository by `scripts/sync-core.mjs`. Never edit them here: change the web repository, then run `npm run sync:core -- <path to Nexora-Saas>`. `packages/core/SOURCE` records the web commit they come from (ARC-12); CI fails when they differ from that commit, and a daily report (`core-drift.yml`) shows when the web repository's `main` has moved ahead |
-| `apps/server` | The server: configuration (`src/config`), HTTP application (`src/http`), database (`src/db`: migrations, runner, session, pool, unit of work), jobs (`src/jobs`: queue, scheduler, outbox relay), worker (`src/worker`), entry points (`src/main.ts` web, `src/worker-main.ts` worker) |
+| `apps/server` | The server: configuration (`src/config`), HTTP application (`src/http`), database (`src/db`: migrations, runner, session, pool, unit of work), jobs (`src/jobs`: queue, scheduler, outbox relay), worker (`src/worker`), import rules (`src/architecture`, ARC-02, ARC-06), entry points (`src/main.ts` web, `src/worker-main.ts` worker) |
 | `docs` | The specification |
 
 ## Commands
