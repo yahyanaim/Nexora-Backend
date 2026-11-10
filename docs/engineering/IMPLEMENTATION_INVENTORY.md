@@ -1,6 +1,6 @@
 # Nexora: implementation inventory
 
-_The real state of every part of Nexora, from the code, not from the plan. Updated with each phase. Audit of 5 November 2026: Nexora-Saas `fdca5e7`, Nexora-Backend `9d47c35` plus PR #5. Updated 10 November 2026 after Phase 1 steps 1 to 5._
+_The real state of every part of Nexora, from the code, not from the plan. Updated with each phase. Audit of 5 November 2026: Nexora-Saas `fdca5e7`, Nexora-Backend `9d47c35` plus PR #5. Updated 10 November 2026 after Phase 1 steps 1 to 6 (B1a complete)._
 
 **Legend:**
 - ✅ built and tested
@@ -21,16 +21,20 @@ _The real state of every part of Nexora, from the code, not from the plan. Updat
 | Schemas, group roles, NOINHERIT logins | ✅ | `migrations/0001_foundation.sql` | DAT-01, DAT-02, TEN-10 | `database.test.ts` |
 | Forced RLS, actor and version stamps, composite tenant keys | ✅ | `0001`, `0003`, `0004` | DAT-08–DAT-11, TEN-05 | `database.test.ts` |
 | Migrations: forward-only, checksums, advisory lock | ✅ | `src/db/migrate.ts` | DAT-12–DAT-14 | `migrate.test.ts` |
-| Unit of work (atomic change + audit + outbox + jobs, retry) | ✅ in PR #5 | `src/db/unit-of-work.ts` | TRX-01, TRX-02, TRX-08, TRL-01 | `unit-of-work.test.ts` |
-| Audit trails (workspace, identity, console), insert-only | ✅ in PR #5 | `0005_audit_trails.sql` | TRL-02–TRL-04, AUD-01 | `unit-of-work.test.ts` |
+| Unit of work (atomic change + audit + outbox + jobs, retry) | ✅ (#5) | `src/db/unit-of-work.ts` | TRX-01, TRX-02, TRX-08, TRL-01 | `unit-of-work.test.ts` |
+| Audit trails (workspace, identity, console), insert-only | ✅ (#5) | `0005_audit_trails.sql` | TRL-02–TRL-04, AUD-01 | `unit-of-work.test.ts` |
+| Audit secret scan (also run by the daily verify job) | ✅ | `0008_audit_secret_scan.sql` | TRL-04 | `audit-secrets.test.ts` |
 | Audit seals (hash chains, seal and verify jobs) | ✅ | `0007_heartbeats_seals.sql`, `src/jobs/audit-seal.ts` | TRL-05 | `heartbeat-seal.test.ts` |
 | Audit retention | ⬜ | — | TRL-06 | — |
-| Outbox, job queue, scheduler, worker | ✅ in PR #5 | `0006_outbox_jobs.sql`, `src/jobs/*`, `src/worker/*` | TRX-05, JOB-01–JOB-04, JOB-06–JOB-08 | `jobs.test.ts` |
+| Outbox, job queue, scheduler, worker | ✅ (#5) | `0006_outbox_jobs.sql`, `src/jobs/*`, `src/worker/*` | TRX-05, JOB-01–JOB-04, JOB-06–JOB-08 | `jobs.test.ts` |
 | Worker heartbeat with queue metrics, missing-worker check | ✅ (alert channel in B2) | `0007_heartbeats_seals.sql`, `src/jobs/heartbeat.ts`, `src/worker/worker.ts` | JOB-07, JOB-09, QAL-08 | `heartbeat-seal.test.ts` |
 | Idempotency keys | ⬜ | — | TRX-04 | — |
 | Optimistic-lock helper (`CONFLICT_STALE_VERSION`) | 🟡 (database part only) | `stamp_row` | TRX-06, DAT-11 | `database.test.ts` |
 | Import-rule (architecture boundary) test | ✅ | `src/architecture/import-rules.ts` | ARC-02, ARC-06 | `import-rules.test.ts` (7) |
 | Session context guard (UUID ids, closed role list) | ✅ | `src/db/session.ts` | TEN-05 | `session.test.ts` (9 cases) |
+| Privilege matrix of every role on every table and function | ✅ | migrations | DAT-02, TEN-10, SEC-02 | `privileges.test.ts` |
+| SQL never built from strings | ✅ | `src/architecture/sql-rules.ts` | SCR-02 | `sql-rules.test.ts` |
+| CI security: actions pinned to commits, secret scan, dependency updates | ✅ both repositories | `.github/workflows/ci.yml`, `.github/dependabot.yml`, `.gitleaks.toml` | SCR-06, SCR-10 | CI job "Secret scan" |
 | Access log with workspace and principal | ⬜ | — | QAL-07 | — |
 
 ## 2. Business modules (cahier §5.3)
@@ -51,10 +55,10 @@ The front-end column counts the API modules in `Nexora-Saas/src/lib/api` (56 in 
 | finance (bank import, journal, VAT, period lock, revenue recognition) | 🧪 `bank-import-api`, rules `journal.ts`, `vat.ts`, `revenue-recognition.ts` | ⬜ | ⬜ | B1d |
 | analytics (KPIs, reports, forecasts, dashboards, saved reports) | 🧪 `saved-reports-api`, rules `analytics.ts`, `kpis.ts`, `dashboards.ts` | ⬜ | ⬜ | B1e |
 | files (uploads, documents) | 🧪 `files-api`, `upload-apis` | ⬜ | ⬜ | B1e |
-| notifications (bell, inbox, e-mail) | 🧪 rules `inbox.ts` (the bell reads 15 lists) | ✅ outbox in PR #5 | ⬜ | B1e |
+| notifications (bell, inbox, e-mail) | 🧪 rules `inbox.ts` (the bell reads 15 lists) | ✅ outbox (#5) | ⬜ | B1e |
 | portal (client portal) | 🧪 `portal-api` | ⬜ | ⬜ | B1e |
 | platform (console: customers, plans, subscriptions, billing, support, health, metrics, data requests) | 🧪 `platform-*-api` (8 modules), `data-export-api`, `gdpr-apis` | ⬜ | ⬜ | B1f |
-| ops (jobs, schedules, health) | — | ✅ in PR #5 | 🟡 `/health/*` | B1a |
+| ops (jobs, schedules, health, heartbeats) | — | ✅ (#5, #11) | 🟡 `/health/*` | B1a |
 
 ## 3. Front-end items the server needs (cahier §21.4)
 
@@ -80,8 +84,8 @@ The front-end column counts the API modules in `Nexora-Saas/src/lib/api` (56 in 
 | Front-end unit and component tests | 143 files, 870 tests | Local and CI |
 | Front-end end to end (Playwright, mock API) | CI job "End-to-end" | CI |
 | Front-end accessibility (axe, console and company pages) | CI job | CI |
-| Back-end server tests | 99 after step 5 (88 after step 4, 72 after step 1) (database suites on real PostgreSQL 16) | Local with `TEST_DATABASE_ADMIN_URL`; always in CI |
+| Back-end server tests | 115 after step 6 (99 after step 5, 88 after step 4, 72 after step 1) (database suites on real PostgreSQL 16) | Local with `TEST_DATABASE_ADMIN_URL`; always in CI |
 | Back-end script tests (`sync-core.mjs`: pin, drift, refusals) | 5 (step 3) | Local and CI (`npm test`) |
 | Back-end core rule tests | 136 | Local and CI |
 | Contract tests front end ↔ back end | 🟡 error body (same example on both sides); session cookies and `err_csrf` with B1b; module shapes come with each module | Local and CI |
-| Guard, privilege and audit suites (B1a exit gate) | 🟡 privilege and isolation tests, import-rule test and session guard tests exist; audit secret scan missing (step 6) | — |
+| Guard, privilege and audit suites (B1a exit gate) | ✅ guard (`session.test.ts`, row-level security in `database.test.ts`, `import-rules.test.ts`, `sql-rules.test.ts`), privilege (`privileges.test.ts`), audit (`unit-of-work.test.ts`, `heartbeat-seal.test.ts`, `audit-secrets.test.ts`) | Local and CI |

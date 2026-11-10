@@ -36,10 +36,10 @@ _How the code is kept secure from now to release, phase by phase. It applies the
 
 | # | Gap | Evidence | Risk | Fix | When |
 |---|---|---|---|---|---|
-| G-1 | GitHub Actions are pinned by tag (`@v4`), not by commit | Both repositories' workflows | A moved tag runs other code in CI (A08, supply chain) | Pin every action to a commit SHA with the version in a comment | Step 6 |
-| G-2 | No secret scan of the repositories | No scan in CI | A committed key goes unnoticed (SCR-06) | A secret-scan job on every pull request, and GitHub secret scanning switched on | Step 6 |
-| G-3 | No automatic dependency updates | No Renovate or Dependabot file | Fixes arrive only when someone looks (A06, SCR-10) | Dependabot (security updates weekly), grouped by ecosystem | Step 6 |
-| G-4 | No rule forbids string-built SQL | SCR-02 asks for a lint rule; the backend has no linter | A later `query(\`… ${x}\`)` would pass review unseen (A03) | A test like the import-rule test that refuses template literals with `${…}` inside `query(…)` calls, except the reviewed role line | Step 6 |
+| G-1 | GitHub Actions are pinned by tag (`@v4`), not by commit | Both repositories' workflows | A moved tag runs other code in CI (A08, supply chain) | Pin every action to a commit SHA with the version in a comment | ✅ Step 6: the commits `v4` pointed to that day, so nothing changed in behaviour |
+| G-2 | No secret scan of the repositories | No scan in CI | A committed key goes unnoticed (SCR-06) | A secret-scan job on every pull request, and GitHub secret scanning switched on | ✅ Step 6: gitleaks 8.28.0 (checked by SHA-256) in both CI pipelines; test fixtures build fake secrets at run time. Still for the owner: switch on GitHub secret scanning and push protection in each repository's settings (Security) |
+| G-3 | No automatic dependency updates | No Renovate or Dependabot file | Fixes arrive only when someone looks (A06, SCR-10) | Dependabot (security updates weekly), grouped by ecosystem | ✅ Step 6: weekly npm and Actions updates, grouped, at most 5 open; still for the owner: switch on Dependabot security updates in each repository's settings |
+| G-4 | No rule forbids string-built SQL | SCR-02 asks for a lint rule; the backend has no linter | A later `query(\`… ${x}\`)` would pass review unseen (A03) | A test like the import-rule test that refuses template literals with `${…}` inside `query(…)` calls, except the reviewed role line | ✅ Step 6: `src/architecture/sql-rules.ts` |
 | G-5 | The database connection does not require TLS in production | `src/db/pool.ts` sets no `ssl` | Credentials and data in clear on the network (SCR-01, A02) | Production config refuses a `DATABASE_URL` without `sslmode=verify-full` | B1b (with the first real data); checked again in B2 |
 | G-6 | Error logs may carry personal data from database error details | `errorHandler` logs the whole error; PostgreSQL `detail` can hold values (e.g. a duplicate e-mail) | PII in logs (A09, Law 09-08) | `pino` redaction of `err.detail`, `err.where`, request bodies and cookies; a test that logs a duplicate-key error and checks the output | B1b (with the access log, M-5) |
 | G-7 | `trust proxy` is fixed at one hop | `app.set("trust proxy", 1)` | Behind a different chain, the client IP (used by rate limits and logs) could be spoofed | Make the hop count configuration, documented per environment | B1b (before rate limits) |
@@ -52,7 +52,7 @@ Each item has a test or a check that proves it; nothing counts as done without i
 | Phase | Security work | Proof |
 |---|---|---|
 | **B1a step 5** ✅ | Worker heartbeat (an alert can only fire if the worker reports); audit seal and verify jobs, so tampering with the trail is detected (TRL-05). The job role runs the seal functions but reads no audit event | Done: a worker without a beat for 2 minutes is reported missing; a changed, removed or inserted event, an altered seal and a broken link are each reported, even with the triggers off; the verify job stays failed while a chain is broken (`heartbeat-seal.test.ts`) |
-| **B1a step 6 (exit gate)** | Guard suite, privilege suite, audit secret scan (TRL-04); G-1 to G-4 | A role reaching another role's table fails; a secret in an audit value fails; an unpinned action, a committed key and a string-built query each fail CI |
+| **B1a step 6 (exit gate)** ✅ | Guard suite, privilege suite, audit secret scan (TRL-04); G-1 to G-4 | Done: a right not in the matrix, a table with a workspace and no forced row-level security, an owner-rights function without a fixed search path, a secret in an audit value, a committed key and a string-built query each fail CI |
 | **B1b** | Argon2id passwords, 12+ characters, breach check, lockout; realm cookies, refresh rotation with reuse detection; CSRF double submit and `Origin` check; second factor and step-up; same answer whether an e-mail exists or not; rate limits; access log; G-5 to G-7 | IAM tests; a forged cross-origin post returns 403 and writes nothing; a reused refresh token revokes the session; 429 at the limits; no PII in logs |
 | **B1c** | Membership check of the workspace in the path; deny by default; record rules (own records, no self-approval); field shaping (costs, salaries); optimistic locking; http/https-only addresses; field encryption of CIN, CNSS and bank accounts (SCR-07) | Cross-company suite (another company's ids → 404 on every endpoint); permission matrix per role; response snapshots per role; a database dump shows ciphertext |
 | **B1d** | Idempotency keys on money writes; gap-free numbering; lock date on the server; frozen issued documents; CSV export escaping (SCR-08) | Replay and concurrency suites; editing an issued invoice in SQL is refused; `=HYPERLINK(…)` exports as text |
@@ -81,8 +81,8 @@ Added to the definition of done of the cahier §21.5:
 
 | When | Check |
 |---|---|
-| Every pull request | CI (tests, rights and isolation suites, dependency audit; from step 6: secret scan, pinned actions, SQL rule); security review of the branch |
-| Every week | Dependency updates (from step 6) |
+| Every pull request | CI (tests, rights and isolation suites, privilege matrix, SQL rule, dependency audit, secret scan, actions pinned to commits); security review of the branch |
+| Every week | Dependency updates (Dependabot pull requests, each with the full CI) |
 | Every staging deployment (from B2) | ZAP baseline |
 | Every quarter | Review of this plan, of access rights and of secret rotation |
 | Before the first paying company | External penetration test |

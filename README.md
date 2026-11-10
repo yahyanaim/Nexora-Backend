@@ -30,7 +30,7 @@ The API contract the server follows is `docs/API_CONTRACT.md` in the web reposit
 | Command | What it does |
 |---|---|
 | `npm ci` | Install |
-| `npm run check` | Type checks and every test |
+| `npm run check` | Type checks and every test (CI also runs the rule parity, the dependency audit and the secret scan) |
 | `npm run sync:core -- ../Nexora-Saas` | Copy the rules from a local web repository (a clean git checkout) and record its commit in `packages/core/SOURCE` |
 | `npm run check:core -- ../Nexora-Saas` | Check the rules match it (add `--at-source` to also require the commit `SOURCE` records) |
 | `npm run dev -w @nexora/server` | Start the web process on port 4000 (`/health/live`, `/health/ready`) |
@@ -46,7 +46,9 @@ Copy `.env.example` to `.env` for local settings. Production refuses to start wi
 | B1a | 1. Repository, `packages/core`, server skeleton, CI | ✅ |
 | B1a | 2. PostgreSQL schemas, roles, migrations, row-level security | ✅ |
 | B1a | 3. Unit of work, audit trail, outbox, job queue, worker | ✅ |
-| B1a | 4. Guard, privilege and audit test suites (exit gate) | Next |
+| B1a | 4. Contract and foundation hardening (Phase 1 steps 1–5) | ✅ |
+| B1a | 5. Exit gate: guard, privilege and audit suites; secret scan, pinned CI actions, dependency updates, SQL rule | ✅ (Phase 1 step 6) |
+| B1b | Identity, sessions, CSRF, memberships, permissions | Next, after the owner's go |
 
 ## Licence
 
