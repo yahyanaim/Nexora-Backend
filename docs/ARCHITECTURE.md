@@ -62,6 +62,8 @@ The rules are written once, in the web repository (`src/lib/workforce`, `src/lib
 | Scheduler | `src/jobs/scheduler.ts` | Recurring jobs of `ops.schedules`; one scheduler at a time (advisory lock); each run enqueued once | JOB-04 |
 | Outbox relay | `src/jobs/outbox-relay.ts` | Turns each event into the jobs its route asks for, at least once, with a dedupe key per event and job, so a second delivery adds nothing | TRX-05, NTF-01 |
 | Worker | `src/worker/worker.ts` | Each turn: put back expired leases, run the scheduler, relay the outbox, run one job. Tenant work of a job runs under `nx_app` in its workspace as `system:<job>` | JOB-03, JOB-08 |
+| Heartbeat | `src/jobs/heartbeat.ts` | A timer, apart from the turns, writes the worker's row with the queue metrics every 30 s and logs them; a clean stop is recorded. `workerHealth()` lists live and missing workers for the operations page and the alert | JOB-07, JOB-09, QAL-08 |
+| Audit seals | `migrations/0007_heartbeats_seals.sql`, `src/jobs/audit-seal.ts` | `audit.seal` every 5 minutes, `audit.verify` every day: hash chains over the three trails; any change, removal or insertion is reported, and the verify job stays failed while a chain is broken | TRL-05 |
 | Import rules | `src/architecture/import-rules.ts` | The architecture test reads every source file and fails on a forbidden import: the rules are in §3.3 | ARC-02, ARC-06 |
 
 ### 3.2 Target shape (cahier des charges §5)

@@ -588,7 +588,7 @@ One PostgreSQL 16 database holds six schemas. Separate schemas let the database 
 | Role | Used by | Privileges |
 |---|---|---|
 | `nx_owner` | Migrations only | Owns all objects; never used by a running process |
-| `nx_app` | Web process for member requests; worker for tenant jobs | Read and write on `tenant` and on tenant rows of `ops` under row-level security, and on member-realm rows of `identity`; insert and read on `audit.workspace_events`; insert on `audit.identity_events` and read of the caller's own rows; insert on `audit.seals` for workspace and identity seals; read on the view `platform.workspace_access`; execute on the crossing functions of Section 6.2 |
+| `nx_app` | Web process for member requests; worker for tenant jobs | Read and write on `tenant` and on tenant rows of `ops` under row-level security, and on member-realm rows of `identity`; insert and read on `audit.workspace_events`; insert on `audit.identity_events` and read of the caller's own rows; **[2.2]** (seals are written by the `audit.seal` job, see TRL-05); read on the view `platform.workspace_access`; execute on the crossing functions of Section 6.2 |
 | `nx_portal` | Web process for portal requests | Read on portal views of `tenant`; update of the decision columns only of quotes, milestones and change orders; insert of survey answers **[2.1]** and of client requests; insert on `audit.workspace_events`, `audit.identity_events` and `ops.outbox`; read and write on portal-realm rows of `identity`; policies also filter by client |
 | `nx_platform` | Web process for console requests; worker for platform jobs | Read and write on `platform`, on staff-realm rows of `identity` and on platform rows of `ops` (jobs, outbox, idempotency keys, NX number sequences); insert and read on `audit.console_events`, on staff-realm rows of `audit.identity_events`, and on console seals; read on the seat-usage view; no privilege on `tenant` |
 | `nx_support` | Requests made inside an approved support session | Read only on `tenant`, through a policy that requires a row of the view `platform.active_support_sessions` for that workspace and agent (SEC-10); insert on both audit trails; no write in this release (OD-8) |
@@ -2207,6 +2207,7 @@ Version 2.0 had 305 requirements (253 M, 46 S, 5 C, 1 W). Version 2.1 has **337*
 | §21.2 | B1a includes contract and foundation hardening (4 weeks); B1c starts with the vertical slice; 28 weeks, about 35 with contingency | E4, E5 |
 | §21.5 | New: roadmap phases mapped onto delivery phases (Table 67c), engineering standards, execution rules, definition of done | E5 |
 | §22.1 | Risk of the two repositories drifting apart | Audit H-1, H-2 |
+| §6.2 Table 15 | `nx_app` no longer inserts seals: the `audit.seal` job writes them through owner functions, and the job role reads no audit event (10 November 2026, Phase 1 step 5). TRL-05 (S) unchanged | Least privilege; audit M-4 |
 | Annex D | 340 requirements (270 M, 62 S, 7 C, 1 W) | ARC-12, ARC-13, JOB-09 |
 
 This document is approved by the owner of Nexora before phase B1a starts. Any change to a Must requirement after approval is recorded here with its reason.
