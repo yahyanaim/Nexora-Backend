@@ -1,6 +1,6 @@
 # Nexora: execution tracker
 
-_The engineering roadmap (phases 0–8) laid onto the delivery plan of the cahier des charges (phases B1a–B3, §21.2), with every open item. One phase is approved and worked at a time; each ends with its gate, tests and an updated inventory. Last update: 6 November 2026: Phase 1 steps 1 to 4 merged (10 November 2026). Earlier: 5 November 2026, Phase 0 approved; decisions E1–E5 in the cahier des charges 2.2 (§1.2, §21.5). The step-by-step log is §8 of `docs/AUDIT.md`._
+_The engineering roadmap (phases 0–8) laid onto the delivery plan of the cahier des charges (phases B1a–B3, §21.2), with every open item. One phase is approved and worked at a time; each ends with its gate, tests and an updated inventory. Last update: 6 November 2026: Phase 1 steps 1 to 5 merged (10 November 2026). Earlier: 5 November 2026, Phase 0 approved; decisions E1–E5 in the cahier des charges 2.2 (§1.2, §21.5). The step-by-step log is §8 of `docs/AUDIT.md`._
 
 **Legend:**
 - ✅ done
@@ -14,7 +14,7 @@ _The engineering roadmap (phases 0–8) laid onto the delivery plan of the cahie
 | Roadmap phase | Cahier phase | Content | Estimate | State |
 |---|---|---|---|---|
 | 0 Audit and baseline | — | This audit, inventory, decisions, tracker | 1 day | ✅ approved, merged (#5, Nexora-Saas #140) |
-| 1 Contract and foundation hardening | B1a step 4 | Error body (E1), session contract (E2), pinned rules (ARC-12), import-rule test, contract tests (ARC-13) | 1 week | 🔄 steps 1 ✅ (#7, Nexora-Saas #142), 2 ✅ (#8, Nexora-Saas #143), 3 ✅ (#9, Nexora-Saas #144), 4 ✅ (#10, Nexora-Saas #145); step 5 next |
+| 1 Contract and foundation hardening | B1a step 4 | Error body (E1), session contract (E2), pinned rules (ARC-12), import-rule test, contract tests (ARC-13) | 1 week | 🔄 steps 1 ✅ (#7, Nexora-Saas #142), 2 ✅ (#8, Nexora-Saas #143), 3 ✅ (#9, Nexora-Saas #144), 4 ✅ (#10, Nexora-Saas #145), 5 ✅ (#11, Nexora-Saas #146); step 6 next |
 | 2 Database, transactions, audit, workers | B1a steps 2–4 | Steps 2 and 3 merged (#3, #5); close-out and exit gate (heartbeat, seal, guard, privilege and audit suites) | 0.5 week left | 🔄 |
 | 3 Identity, authentication, authorization | B1b | Sessions, sign-in, CSRF, memberships, roles, permission engine, step-up, devices | 2–3 weeks | ⬜ |
 | 4 First vertical slice | B1c (part) | Client → project → member → time → submit → approve, end to end | 2–3 weeks | ⬜ |
@@ -46,7 +46,7 @@ Done in six pull requests, in this order, each with its own tests and checks; th
 | 2 | 1.2 session and CSRF contract (docs, both repositories) | ✅ merged (#8, Nexora-Saas #143) |
 | 3 | 1.3 pinned shared rules | ✅ merged (#9, Nexora-Saas #144) |
 | 4 | 1.4 import-rule test and 1.5 session guard tests; security plan | ✅ merged (#10, Nexora-Saas #145) |
-| 5 | 2.3 worker heartbeat and 2.4 audit seal | ⬜ |
+| 5 | 2.3 worker heartbeat and 2.4 audit seal | ✅ merged (#11, Nexora-Saas #146) |
 | 6 | 2.5 B1a exit gate, 2.6 supply-chain and SQL checks, 1.6 docs | ⬜ |
 
 
@@ -65,8 +65,8 @@ Done in six pull requests, in this order, each with its own tests and checks; th
 |---|---|---|---|
 | 2.1 | Schemas, roles, RLS, migrations, stamps | B1a step 2 | ✅ (#3) |
 | 2.2 | Unit of work, audit trails, outbox, queue, scheduler, worker | B1a step 3 | ✅ (#5) |
-| 2.3 | Worker heartbeat and metrics log (queue depth, oldest due, dead, outbox lag) | M-3, JOB-09 | ⬜ |
-| 2.4 | Audit seal and verify jobs (`audit.seals`) | M-4, TRL-05 | ⬜ |
+| 2.3 | Worker heartbeat and metrics log (queue depth, oldest due, dead, outbox lag) | M-3, JOB-09 | ✅ step 5 (`ops.worker_heartbeats`, `workerHealth()`); the alert channel that reads it comes with monitoring (B2) |
+| 2.4 | Audit seal and verify jobs (`audit.seals`) | M-4, TRL-05 | ✅ step 5; retention (TRL-06) stays in phase 8 |
 | 2.5 | Exit gate (B1a step 4): guard suite, privilege suite, audit secret scan (TRL-04) | Cahier B1a gate | ⬜ |
 | 2.6 | Security plan G-1 to G-4: actions pinned to a commit, secret scan in CI, Dependabot security updates, a test that refuses string-built SQL | `SECURITY_PLAN.md`; SCR-02, SCR-06, SCR-10 | ⬜ |
 
@@ -104,7 +104,7 @@ Planned in the cahier (§21.2) and in the roadmap. Each is broken down into item
 | 5 | The 12 CRM and 12 work features (REL-11–REL-22, WRK-12–WRK-22); settings and lists; leave and balances; operational reports |
 | 6 | Idempotency keys (H-4, F4) before any money command; gap-free numbering; approval rule on quotes and invoices (F1, F2); concurrency and money suites |
 | 7 | Files with allow-list and scanning; e-mail through the outbox; the notice feed (F12); portal sign-in link (F6); console backend; support sessions |
-| 8 | Audit retention (TRL-06); restore test; monitoring and alerts; staging; load test (QAL-01); key rotation; external penetration test; release procedure deploys web and server from commits whose rules match (ARC-12) |
+| 8 | Audit retention (TRL-06); restore test; monitoring and alerts (including the missing-worker alert of JOB-09 and the dead-job alert of JOB-07); staging; load test (QAL-01); key rotation; external penetration test; release procedure deploys web and server from commits whose rules match (ARC-12) |
 
 ## 3. Open decisions for the owner
 

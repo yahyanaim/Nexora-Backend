@@ -13,7 +13,7 @@ _How the PostgreSQL database is laid out, who may touch what, how it is created 
 | `audit` | Workspace, identity and console audit trails | Insert and read only |
 | `archive` | Accounting records kept after a workspace is deleted | Only `nx_dataops` |
 
-Built so far: `ops.schema_migrations`, `identity.principals`, `tenant.workspaces`, `tenant.departments` and the helpers below (B1a step 2); the three audit trails, `ops.outbox`, `ops.jobs` and `ops.schedules` (B1a step 3, sections 8 and 9).
+Built so far: `ops.schema_migrations`, `identity.principals`, `tenant.workspaces`, `tenant.departments` and the helpers below (B1a step 2); the three audit trails, `ops.outbox`, `ops.jobs` and `ops.schedules` (B1a step 3, sections 8 and 9); `ops.worker_heartbeats` and `audit.seals` (Phase 1 step 5, sections 8 and 9).
 
 Interactive diagrams: [the tables built today](diagrams/database.html), [the planned chain from an hour worked to a payment](diagrams/core-chain.html), [the three barriers between companies](diagrams/tenant-barriers.html).
 
@@ -30,7 +30,7 @@ Interactive diagrams: [the tables built today](diagrams/database.html), [the pla
 | `nx_dataops` | Export and deletion jobs | `tenant` read and delete, one workspace at a time |
 | `nx_provision` | Owns the crossing functions (§6.2) | — |
 | `nx_readonly` | Restore tests, readiness, reconciliation | `tenant` read, `ops.schema_migrations` |
-| `nx_jobs` | The worker's queue work | Every row of `ops.outbox`, `ops.jobs` and `ops.schedules`; creates `system:<job>` principals. **No tenant table**: tenant work in a job runs under `nx_app` |
+| `nx_jobs` | The worker's queue work | Every row of `ops.outbox`, `ops.jobs`, `ops.schedules` and `ops.worker_heartbeats`; creates `system:<job>` principals; runs `audit.seal()` and `audit.verify()`. **No tenant table and no audit event**: tenant work in a job runs under `nx_app` |
 
 **Login users** (created at bootstrap, one per process kind, `NOINHERIT`): a login user is a member of the group roles it may use but has **no privilege of its own**. Each transaction runs `SET LOCAL ROLE <group role>` (see `src/db/session.ts`), so a forgotten role means "permission denied", never "too much access".
 
@@ -114,8 +114,9 @@ TEST_DATABASE_ADMIN_URL=postgresql://postgres:dev@localhost:5432/postgres npm te
 | `audit.identity_events` | Sign-in and account events, before a workspace is known | `nx_app`, `nx_portal`, `nx_platform` | Comes with identity (B1b) |
 | `audit.console_events` | Every staff action | `nx_platform`, with the request's principal as actor | `nx_platform` |
 
-- **Insert-only (TRL-02).** A trigger refuses `UPDATE`, `DELETE` and `TRUNCATE` for every role, the owner included, even with row-level security lifted. The retention function (TRL-06) will be the only exception; the sealing job (TRL-05) comes later.
+- **Insert-only (TRL-02).** A trigger refuses `UPDATE`, `DELETE` and `TRUNCATE` for every role, the owner included, even with row-level security lifted. The retention function (TRL-06) will be the only exception.
 - **Same transaction (TRL-01).** `runUnitOfWork` (`src/db/unit-of-work.ts`) writes the event with the change: if the event cannot be written, the change does not happen.
+- **Seals (TRL-05).** `audit.seals` holds one chain per trail, and one per workspace for the workspace trail. Each seal covers the events after the previous seal, by id, up to its own last event, with the SHA-256 of those events in id order (each as its `jsonb` text) and the hash of the previous seal. The `audit.seal` job (every 5 minutes) seals events older than 2 minutes, so a transaction still open is not left out of a sealed range; the `audit.verify` job (daily) recomputes every chain and fails while a break exists, so the dead job is alerted (JOB-07). A changed, removed or inserted event, an altered seal and a broken link are each reported, even when done by a superuser with the triggers off. Both jobs call `SECURITY DEFINER` functions owned by `nx_owner` (with `search_path` fixed); `nx_jobs` can execute them but read no audit event, and seals are insert-only like the trails.
 - **No secrets (TRL-04).** Before and after values are copied with password, token, secret, key, IBAN and card fields replaced by `[redacted]`.
 
 ## 9. Outbox, jobs and schedules (§15.1, §17)
@@ -124,7 +125,8 @@ TEST_DATABASE_ADMIN_URL=postgresql://postgres:dev@localhost:5432/postgres npm te
 |---|---|---|
 | `ops.outbox` | Events written by a command, relayed after commit | `nx_app` (own workspace), `nx_platform` (no workspace), `nx_jobs` |
 | `ops.jobs` | The job queue: type, payload, workspace, status, run time, attempts, lease, last error, dedupe key | `nx_app` (own workspace), `nx_platform` (no workspace), `nx_jobs` |
-| `ops.schedules` | Recurring jobs: job type, interval, next run | Migrations; `nx_jobs` moves the next run |
+| `ops.schedules` | Recurring jobs: job type, interval, next run. Today: `audit.seal` (5 min), `audit.verify` (daily) | Migrations; `nx_jobs` moves the next run |
+| `ops.worker_heartbeats` | One row per worker: start, last beat, clean stop, queue metrics (due, oldest due, running, dead, outbox pending and lag). A worker without a beat for 2 minutes that did not stop cleanly is missing (JOB-09) | `nx_jobs`; read by `nx_platform` (operations page) |
 
 Company roles can add rows but never read the queue tables.
 

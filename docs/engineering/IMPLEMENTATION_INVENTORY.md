@@ -1,6 +1,6 @@
 # Nexora: implementation inventory
 
-_The real state of every part of Nexora, from the code, not from the plan. Updated with each phase. Audit of 5 November 2026: Nexora-Saas `fdca5e7`, Nexora-Backend `9d47c35` plus PR #5. Updated 10 November 2026 after Phase 1 steps 1 to 4._
+_The real state of every part of Nexora, from the code, not from the plan. Updated with each phase. Audit of 5 November 2026: Nexora-Saas `fdca5e7`, Nexora-Backend `9d47c35` plus PR #5. Updated 10 November 2026 after Phase 1 steps 1 to 5._
 
 **Legend:**
 - ✅ built and tested
@@ -23,9 +23,10 @@ _The real state of every part of Nexora, from the code, not from the plan. Updat
 | Migrations: forward-only, checksums, advisory lock | ✅ | `src/db/migrate.ts` | DAT-12–DAT-14 | `migrate.test.ts` |
 | Unit of work (atomic change + audit + outbox + jobs, retry) | ✅ in PR #5 | `src/db/unit-of-work.ts` | TRX-01, TRX-02, TRX-08, TRL-01 | `unit-of-work.test.ts` |
 | Audit trails (workspace, identity, console), insert-only | ✅ in PR #5 | `0005_audit_trails.sql` | TRL-02–TRL-04, AUD-01 | `unit-of-work.test.ts` |
-| Audit seal and retention | ⬜ | — | TRL-05, TRL-06 | — |
+| Audit seals (hash chains, seal and verify jobs) | ✅ | `0007_heartbeats_seals.sql`, `src/jobs/audit-seal.ts` | TRL-05 | `heartbeat-seal.test.ts` |
+| Audit retention | ⬜ | — | TRL-06 | — |
 | Outbox, job queue, scheduler, worker | ✅ in PR #5 | `0006_outbox_jobs.sql`, `src/jobs/*`, `src/worker/*` | TRX-05, JOB-01–JOB-04, JOB-06–JOB-08 | `jobs.test.ts` |
-| Worker health, metrics output | ⬜ (`queueStats` only) | `src/jobs/queue.ts` | QAL-08, JOB-07 | — |
+| Worker heartbeat with queue metrics, missing-worker check | ✅ (alert channel in B2) | `0007_heartbeats_seals.sql`, `src/jobs/heartbeat.ts`, `src/worker/worker.ts` | JOB-07, JOB-09, QAL-08 | `heartbeat-seal.test.ts` |
 | Idempotency keys | ⬜ | — | TRX-04 | — |
 | Optimistic-lock helper (`CONFLICT_STALE_VERSION`) | 🟡 (database part only) | `stamp_row` | TRX-06, DAT-11 | `database.test.ts` |
 | Import-rule (architecture boundary) test | ✅ | `src/architecture/import-rules.ts` | ARC-02, ARC-06 | `import-rules.test.ts` (7) |
@@ -79,7 +80,7 @@ The front-end column counts the API modules in `Nexora-Saas/src/lib/api` (56 in 
 | Front-end unit and component tests | 143 files, 870 tests | Local and CI |
 | Front-end end to end (Playwright, mock API) | CI job "End-to-end" | CI |
 | Front-end accessibility (axe, console and company pages) | CI job | CI |
-| Back-end server tests | 88 after step 4 (72 after step 1) (database suites on real PostgreSQL 16) | Local with `TEST_DATABASE_ADMIN_URL`; always in CI |
+| Back-end server tests | 99 after step 5 (88 after step 4, 72 after step 1) (database suites on real PostgreSQL 16) | Local with `TEST_DATABASE_ADMIN_URL`; always in CI |
 | Back-end script tests (`sync-core.mjs`: pin, drift, refusals) | 5 (step 3) | Local and CI (`npm test`) |
 | Back-end core rule tests | 136 | Local and CI |
 | Contract tests front end ↔ back end | 🟡 error body (same example on both sides); session cookies and `err_csrf` with B1b; module shapes come with each module | Local and CI |
