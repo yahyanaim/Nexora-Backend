@@ -37,7 +37,11 @@ The rules are written once, in the web repository (`src/lib/workforce`, `src/lib
 
 - `scripts/sync-core.mjs` copies every **pure** rule file, its types and its tests into `packages/core/src`, and rewrites `@/…` imports into relative ones. A file that reaches browser storage, the API layer, React, translations or an unknown package is left out, and so is every file that imports it. Today: 125 files (57 workforce and 12 platform rule files, types, the error catalogue, 25 test files).
 - The rule code is type-checked **without DOM or Node types**, so a browser or Node API cannot slip in. Tests may use the DOM, for example to read generated XML.
-- **CI parity check (ARC-01):** on every pull request, CI checks out the web repository's `main`, re-runs the sync with `--check`, and fails if anything differs. A rule changes in the web repository first; then `npm run sync:core -- ../Nexora-Saas` brings it here.
+- **Pinned version (ARC-12):** the sync writes the web commit it copied from into `packages/core/SOURCE`. It refuses a web checkout with uncommitted changes under `src/`, because that commit would not reproduce the package.
+- **CI parity check (ARC-01, ARC-12):** on every pull request, CI checks out the web commit recorded in `SOURCE`, re-runs the sync with `--check --at-source`, and fails if anything differs. A merge in the web repository therefore never turns backend CI red on its own.
+- **Drift report (ARC-12):** `.github/workflows/core-drift.yml` compares the package with the web repository's `main` every day (and on demand). A red run lists the changed files in its summary: run `npm run sync:core -- ../Nexora-Saas` and open a pull request. A web commit that changes no rule is not drift.
+- **Releases:** the web application and the server are deployed from commits whose rules match (the server's `SOURCE` names the web commit); the release procedure comes with staging (B2).
+- The script's own tests (`scripts/sync-core.test.mjs`, run by `npm test`) build a small web repository in a temporary folder and check the pin, the drift and the refusals.
 - Never edit a generated file. Each one starts with a header saying where it comes from. The only hand-written files are `src/lib/id.ts` and its test.
 
 ## 3. The server: `apps/server`
@@ -108,7 +112,7 @@ Interactive version: [layers of a module](diagrams/module-layers.html).
 |---|---|
 | `npm ci` | Install |
 | `npm run check` | Type checks and every test |
-| `npm run sync:core -- ../Nexora-Saas` | Copy the rules from a local web repository |
-| `npm run check:core -- ../Nexora-Saas` | Check they match |
+| `npm run sync:core -- ../Nexora-Saas` | Copy the rules from a local web repository and record its commit in `packages/core/SOURCE` |
+| `npm run check:core -- ../Nexora-Saas` | Check they match (`--at-source`: also require the recorded commit) |
 | `npm run dev -w @nexora/server` | Start the web process on port 4000 |
 | `npm run worker -w @nexora/server` | Start the worker process |

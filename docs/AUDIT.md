@@ -2,7 +2,7 @@
 
 _This is the only audit file, the same report in `Nexora-Saas` and `Nexora-Backend`. Each new audit, code review or report **replaces** this file in both repositories. Older versions stay in the git history._
 
-**Last update:** 6 November 2026, Phase 1 step 2 (session and CSRF contract). The audit itself is the **Phase 0 repository audit and baseline** of 5 November 2026. Each later step is recorded in **§8 Progress log**, and the findings table marks what is closed.
+**Last update:** 6 November 2026, Phase 1 step 3 (pinned shared rules). The audit itself is the **Phase 0 repository audit and baseline** of 5 November 2026. Each later step is recorded in **§8 Progress log**, and the findings table marks what is closed.
 **Repositories and commits audited:**
 - `yahyanaim/Nexora-Saas` `main` at `fdca5e7` (after #139)
 - `yahyanaim/Nexora-Backend` `main` at `9d47c35` (after #4), plus the open pull request #5 (B1a step 3, not merged)
@@ -31,7 +31,7 @@ The plan is sound and the code follows it. Two contract mismatches between the r
 | Area | State | In one line |
 |---|---|---|
 | Front end (UI, rules, translations) | 🟢 Done (prototype) | 56 API modules (20 more test files), 870 tests, 9 languages, axe and Playwright in CI; all data in the browser |
-| Shared rules (`packages/core`) | 🟢 Working, 🟡 not pinned | 125 generated files, CI parity check, but checked against a moving `main` |
+| Shared rules (`packages/core`) | 🟢 Working and pinned (updated 6 November) | 125 generated files; CI checks them against the web commit in `packages/core/SOURCE` (step 3); a daily report shows drift from web `main` |
 | Database foundation | 🟢 Done | Six schemas, NOINHERIT logins, forced RLS on every tenant table, checksummed migrations, database tests on every table |
 | Transactions, audit, outbox, jobs | 🟢 Done in PR #5 | Atomic unit of work, insert-only trails, SKIP LOCKED queue, scheduler, relay, worker; 27 more tests |
 | Identity and permissions on the server | 🔴 Not started | No session, sign-in, membership or permission engine (phase B1b) |
@@ -88,7 +88,7 @@ Severity: **Critical** blocks real use, **High** must be fixed before the phase 
 
 | # | Finding | Where | Recommendation | Phase |
 |---|---|---|---|---|
-| M-1 | **Shared rules checked against a moving `main`.** The parity job checks out `Nexora-Saas` `ref: main`, and `@nexora/core` stays at version `0.1.0` with no record of its source commit. A web merge can turn backend CI red, or the two can be deployed with different rules. | Backend `.github/workflows/ci.yml` job `core-parity`; `packages/core/package.json` | Record the source commit in `packages/core/SOURCE` (written by `sync:core`); CI checks parity against that commit; a scheduled job reports drift from web `main`; releases deploy web and server from matching commits | 1 |
+| M-1 | **Shared rules checked against a moving `main`.** The parity job checks out `Nexora-Saas` `ref: main`, and `@nexora/core` stays at version `0.1.0` with no record of its source commit. A web merge can turn backend CI red, or the two can be deployed with different rules. | Backend `.github/workflows/ci.yml` job `core-parity`; `packages/core/package.json` | Record the source commit in `packages/core/SOURCE` (written by `sync:core`); CI checks parity against that commit; a scheduled job reports drift from web `main`; releases deploy web and server from matching commits | 1. **Closed (step 3)**; the release rule comes with staging (B2) |
 | M-2 | **Architecture boundaries are documented, not enforced.** There is no test that forbids domain → HTTP or infrastructure imports, or cross-module imports (ARC-06). The server has no module folders yet. | Backend `apps/server/src` | Add an import-rule test (e.g. dependency-cruiser) with the first module folder | 1 (rule), 4 (first module) |
 | M-3 | **Worker health is not visible.** `queueStats` exists, but the worker has no heartbeat, health endpoint or metrics output (QAL-08, JOB-07 alert). | Backend `src/jobs/queue.ts` `queueStats`, `src/worker/worker.ts` (PR #5) | A worker heartbeat row plus a periodic metrics log; the operations page reads both | 2 (close-out) |
 | M-4 | **Audit sealing and retention not built** (TRL-05, TRL-06). | Backend `0005_audit_trails.sql` (PR #5, documented as later) | `audit.seals` + `audit.seal` and `audit.verify` jobs; the retention function as the only exception to the insert-only trigger | 2 (close-out) or 8 |
@@ -132,7 +132,7 @@ The mapping of every roadmap phase onto the cahier's phases, with each open item
 | Error catalogue (432 keys) and 9 languages; one agreed error body (H-1, step 1); session and CSRF contract (H-2, H-6, step 2) | Session code on both sides (B1b) |
 | Database: schemas, roles, RLS, migrations, stamps | Sign-in, sessions, CSRF, memberships, permissions (B1b) |
 | Unit of work, audit trails, outbox, queue, scheduler, worker (PR #5, open) | Idempotency keys (H-4), optimistic-lock helper (H-5) |
-| Shared rules with parity check | Pinned rule version (M-1), import-rule test (M-2) |
+| Shared rules with parity check, pinned to a web commit (M-1, step 3) | Import-rule test (M-2) |
 | CI: typecheck, tests on real PostgreSQL, dependency audit, e2e, axe | Worker health and metrics (M-3), audit seal and retention (M-4) |
 | Specification, architecture, database docs, interactive diagrams | Staging, backups, monitoring, load test, penetration test (B2, B3) |
 
@@ -165,5 +165,6 @@ Every step of the plan adds a row here, in both repositories, with its pull requ
 | 5 Nov 2026 | Cahier des charges 2.2 | Nexora-Backend #6, Nexora-Saas #141 | Decisions E1–E5; ARC-12, ARC-13, JOB-09; B1a 4 weeks; §21.5 (standards, definition of done); audit §7 and README | Docs only; CI green | ✅ merged |
 | 5–6 Nov 2026 | Phase 1, step 1: one error body (E1, H-1) | Nexora-Saas #142, Nexora-Backend #7 | Server: `error-body.ts` with the body `{ code, values, requestId, message? }` and its contract test. Front end: `translateError` reads `values` (still `details` during the switch); contract §2. `packages/core` synced after the web merge | Front end 871; server 72 + core 136; CI green on both | ✅ merged |
 | 6 Nov 2026 | Phase 1, step 2: session and CSRF contract (E2, H-2, H-6) | Nexora-Saas #143, Nexora-Backend #8 | Contract §2: realm and version paths, cookies `nx_m` / `nx_p` / `nx_s` with their limits, 15-minute access cookie and rotating refresh, `X-XSRF-TOKEN` and `Origin` check, edge guard, the list of files switched with B1b. ADR-007 written out; cahier E2 now points to Table 6; finding H-6 added; tracker and inventory updated | Docs only; front end 871; server 72 + core 136; CI green on both | ✅ merged |
+| 6 Nov 2026 | Phase 1, step 3: pinned shared rules (ARC-12, M-1) | Nexora-Backend #9, Nexora-Saas #144 | `sync:core` records the web commit in `packages/core/SOURCE` (now `c060f5b`) and refuses uncommitted rule changes; the CI parity job checks that commit (`--check --at-source`), so a web merge no longer turns backend CI red; new daily drift report `core-drift.yml` against web `main`; 5 tests of the script; README, architecture, ADR-003, tracker and inventory updated | Server 72 + core 136 + script 5 on PostgreSQL 16; CI green on both | ✅ merged |
 
-**Next:** step 3, pinned shared rules (ARC-12, M-1), after the owner's go.
+**Next:** step 4, import-rule test and session guard tests (ARC-06, M-2, L-1), after the owner's go.
