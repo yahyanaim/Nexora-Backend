@@ -11,4 +11,6 @@ paths = [
   '''(^|/)[^/]*\.test\.(ts|tsx|mjs)$''',
   '''(^|/)e2e/''',
   '''(^|/)package-lock\.json$''',
+  # A public list of leaked passwords (IAM-03), not anyone's secret: apps/server/data/README.md
+  '''(^|/)apps/server/data/breached-passwords\.txt$''',
 ]
