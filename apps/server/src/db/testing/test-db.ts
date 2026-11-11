@@ -78,7 +78,7 @@ export async function createTestDb(): Promise<TestDb> {
   const db = await createEmptyDb()
   await migrate({ connectionString: db.ownerUrl })
   const admin = new pg.Pool({ connectionString: db.adminUrl, max: 3 })
-  await admin.query(`GRANT nx_app, nx_portal, nx_platform, nx_support, nx_dataops, nx_readonly, nx_jobs TO ${WEB}`)
+  await admin.query(`GRANT nx_app, nx_portal, nx_platform, nx_support, nx_dataops, nx_readonly, nx_jobs, nx_provision TO ${WEB}`)
   const web = new pg.Pool({ connectionString: db.webUrl, max: 4 })
   return {
     ...db,

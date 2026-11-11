@@ -67,7 +67,7 @@ export function memberAuthRoutes(deps: { auth: AuthService; appOrigin: string; c
   })
 
   router.get("/app/v1/auth/me", requireSession(auth, "member"), (req, res) => {
-    res.json({ user: req.session!.user })
+    res.json({ user: req.session!.user, activeWorkspaceId: req.session!.activeWorkspaceId })
   })
 
   return router

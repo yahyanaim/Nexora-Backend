@@ -91,6 +91,15 @@ The import rules of §3.3 apply: the domain imports nothing, the application onl
 | Access log | `http/access-log.ts`, `config/logging.ts` | One line per request with request id, path without query, status, duration, principal and realm; cookies, credentials and database error details redacted in both processes | QAL-07, G-6 |
 | Configuration | `config/config.ts` | `TRUST_PROXY_HOPS` (G-7), `COOKIE_PATH_PREFIX`; production refuses a database URL without `sslmode=verify-full` (G-5) | SCR-01 |
 
+**Second module: `modules/workspace` (B1b step 3).** Workspaces, memberships, roles and the permission engine.
+
+| Part | File | What it does | Requirements |
+|---|---|---|---|
+| Domain | `domain/permissions.ts`, `domain/owner-rules.ts` | The catalogue is `AdminPermissionsPlatform` from `packages/core`; the console's areas (staff, banned users, system issues, plans, subscriptions) are refused to company roles; `*` grants all. The four default roles come from the shared `WORK_ROLE_PERMISSIONS`. Owner rules: only owners change owners, an owner is an administrator, one active owner remains. Pure | §10.1, AUZ-02, AUZ-11 |
+| Use cases | `application/workspaces.ts` | `resolve`: the workspace of the path is accepted only with an active membership, rebuilt from the database on every request (a role change applies at the next request), returned as a frozen context; a refusal is written to the identity trail. Each command and query declares its permission in `PERMISSION_OF` and checks it first; a refused write is written to the company's trail. Members (role, owner flag, status), custom roles (create, change, delete when unused), changes audited with before and after | TEN-01, TEN-03, AUZ-01, AUZ-09, AUZ-10, AUZ-14 |
+| Store | `infrastructure/pg-store.ts` | Parameterised SQL as `nx_app` with the workspace set; every query names the workspace as well (TEN-04). The list of one's companies goes through `tenant.my_memberships()`; a new company through `tenant.provision_workspace` as `nx_provision` | TEN-04, TEN-05 |
+| Routes | `http/workspace-routes.ts` | `GET /app/v1/me/workspaces`, `PUT /app/v1/auth/workspace`; under `/app/v1/workspaces/:wid`: `GET /context`, `GET /members`, `PATCH /members/:id`, `GET`/`POST /roles`, `PATCH`/`DELETE /roles/:id`. Every route is listed in `WORKSPACE_ROUTES` with its command; a test fails when a mounted route is missing from it | API contract §4.1, §4.3; AUZ-01 |
+
 ### 3.2 Target shape (cahier des charges §5)
 
 A **modular monolith**: one deployable server, one PostgreSQL database, no microservices, broker or cache unless a measured need appears.

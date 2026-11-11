@@ -38,6 +38,7 @@ function toSession(r: Row): SessionRecord {
     idleExpiresAt: date(r.idle_expires_at)!,
     absoluteExpiresAt: date(r.absolute_expires_at)!,
     xsrfHash: r.xsrf_hash as string,
+    activeWorkspaceId: (r.active_workspace_id as string | null) ?? null,
     revokedAt: date(r.revoked_at),
   }
 }
@@ -83,13 +84,16 @@ function store(c: pg.PoolClient): IdentityStore {
     },
     async sessionById(id) {
       const r = await one(
-        "SELECT id, principal_id, realm, created_at, last_activity_at, idle_expires_at, absolute_expires_at, xsrf_hash, revoked_at FROM identity.sessions WHERE id = $1",
+        "SELECT id, principal_id, realm, created_at, last_activity_at, idle_expires_at, absolute_expires_at, xsrf_hash, revoked_at, active_workspace_id FROM identity.sessions WHERE id = $1",
         [id],
       )
       return r ? toSession(r) : null
     },
     async touchSession(id, lastActivityAt, idleExpiresAt) {
       await c.query("UPDATE identity.sessions SET last_activity_at = $2, idle_expires_at = $3 WHERE id = $1 AND revoked_at IS NULL", [id, lastActivityAt, idleExpiresAt])
+    },
+    async setActiveWorkspace(sessionId, workspaceId) {
+      await c.query("UPDATE identity.sessions SET active_workspace_id = $2 WHERE id = $1", [sessionId, workspaceId])
     },
     async revokeSession(id, reason) {
       await c.query("UPDATE identity.sessions SET revoked_at = now(), revoked_reason = $2 WHERE id = $1 AND revoked_at IS NULL", [id, reason])

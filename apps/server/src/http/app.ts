@@ -3,10 +3,12 @@ import express, { type RequestHandler } from "express"
 import type { Logger } from "pino"
 import type { Config } from "../config/config"
 import type { AuthService } from "../modules/identity/application/index"
+import type { WorkspaceService } from "../modules/workspace/application/index"
 import { accessLog } from "./access-log"
 import { memberAuthRoutes } from "./auth-routes"
 import { errorHandler } from "./error-body"
 import { notFound } from "./errors"
+import { workspaceRoutes } from "./workspace-routes"
 
 declare module "express-serve-static-core" {
   interface Request {
@@ -21,10 +23,12 @@ export interface AppDeps {
   readiness?: Array<() => Promise<void>>
   /** Sign-in and sessions (B1b); without it the auth routes are not mounted. */
   auth?: AuthService
+  /** Workspaces, members and roles (B1b step 3); mounted with auth. */
+  workspaces?: WorkspaceService
 }
 
 /** Builds the HTTP application. Steps 1 of the request chain (§5.5): id, size limit, headers. */
-export function createApp({ config, logger, readiness = [], auth }: AppDeps) {
+export function createApp({ config, logger, readiness = [], auth, workspaces }: AppDeps) {
   const app = express()
   app.disable("x-powered-by")
   // How many proxies stand in front (security plan G-7): the client address of logs and rate limits depends on it.
@@ -65,6 +69,7 @@ export function createApp({ config, logger, readiness = [], auth }: AppDeps) {
   if (auth) {
     const cookies = { pathPrefix: config.COOKIE_PATH_PREFIX, secure: config.NODE_ENV === "production" || config.APP_ORIGIN.startsWith("https://") }
     app.use(memberAuthRoutes({ auth, appOrigin: config.APP_ORIGIN, cookies }))
+    if (workspaces) app.use(workspaceRoutes({ auth, workspaces, appOrigin: config.APP_ORIGIN }))
   }
 
   app.use((_req, _res, next) => next(notFound()))
