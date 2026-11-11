@@ -155,3 +155,10 @@ Company roles can add rows but never read the queue tables.
 
 The member realm (`nx_app`) reads, adds and updates these rows, because sign-in happens before any workspace is known; it never deletes an account. The console and portal roles have no right on them yet. The privilege suite holds the exact rights.
 
+**Sign-in limits (B1b step 2, migration `0010`).**
+
+| Table | What it is | Rules |
+|---|---|---|
+| `identity.sign_in_failures` | Failed sign-ins and the 15-minute lock per e-mail tried, by SHA-256 of the e-mail | One row per e-mail, known or not, so a lock never reveals an account; deleted at the next success; rows untouched for a day are removed |
+| `ops.rate_limits` | Fixed-window counters, e.g. failed sign-ins per client address (10 per 15 minutes) | The bucket is a purpose and a SHA-256: no address in clear; old windows removed by whoever writes |
+

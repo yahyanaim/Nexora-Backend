@@ -1,6 +1,7 @@
 import { hostname } from "node:os"
 import pino from "pino"
 import { ConfigError, loadConfig } from "./config/config"
+import { loggerOptions } from "./config/logging"
 import { createPool } from "./db/pool"
 import { jobHandlers, outboxRoutes } from "./jobs/registry"
 import { Worker } from "./worker/worker"
@@ -17,7 +18,7 @@ function main() {
     }
     throw error
   }
-  const logger = pino({ level: config.LOG_LEVEL, base: { service: "nexora-worker" } })
+  const logger = pino(loggerOptions(config.LOG_LEVEL, "nexora-worker"))
   if (!config.DATABASE_URL) {
     logger.fatal("DATABASE_URL is required by the worker")
     process.exit(1)

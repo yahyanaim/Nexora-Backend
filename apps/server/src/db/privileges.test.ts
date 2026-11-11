@@ -20,6 +20,7 @@ const TABLES: Record<string, Record<string, string>> = {
   "audit.workspace_events": { nx_app: "SELECT INSERT", nx_dataops: "SELECT" },
   "identity.refresh_tokens": { nx_app: "SELECT INSERT UPDATE" },
   "identity.sessions": { nx_app: "SELECT INSERT UPDATE" },
+  "identity.sign_in_failures": { nx_app: "SELECT INSERT UPDATE DELETE" },
   "identity.sign_in_tokens": { nx_app: "SELECT INSERT UPDATE" },
   "identity.users": { nx_app: "SELECT INSERT UPDATE" },
   "identity.principals": {
@@ -28,6 +29,7 @@ const TABLES: Record<string, Record<string, string>> = {
   },
   "ops.jobs": { nx_app: "INSERT", nx_jobs: "SELECT INSERT UPDATE", nx_platform: "INSERT" },
   "ops.outbox": { nx_app: "INSERT", nx_jobs: "SELECT INSERT UPDATE", nx_platform: "INSERT" },
+  "ops.rate_limits": { nx_app: "SELECT INSERT UPDATE DELETE" },
   "ops.schedules": { nx_jobs: "SELECT UPDATE" },
   "ops.schema_migrations": { nx_app: "SELECT", nx_jobs: "SELECT", nx_platform: "SELECT", nx_readonly: "SELECT" },
   "ops.worker_heartbeats": { nx_jobs: "SELECT INSERT UPDATE DELETE", nx_platform: "SELECT" },

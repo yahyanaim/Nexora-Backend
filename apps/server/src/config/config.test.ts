@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest"
 import { ConfigError, loadConfig } from "./config"
 
 const strong = "k3J9vQ2mX7pL1zR8tW4yB6nC0dF5hG2s"
-const db = "postgresql://nx_web@db.internal:5432/nexora"
+const db = "postgresql://nx_web@db.internal:5432/nexora?sslmode=verify-full"
 
 describe("configuration (ARC-04)", () => {
   it("starts in development with defaults and no secret", () => {
@@ -41,5 +41,21 @@ describe("configuration (ARC-04)", () => {
     expect(() => loadConfig({ NODE_ENV: "production", APP_ORIGIN: "https://app.nexora.ma", SESSION_SECRET: strong })).toThrow(/DATABASE_URL is required/)
     expect(() => loadConfig({ DATABASE_URL: "mysql://x" })).toThrow(/postgres:\/\//)
     expect(() => loadConfig({ DATABASE_POOL_MAX: "50" })).toThrow()
+  })
+
+  it("requires a verified TLS connection to the database in production (SCR-01, security plan G-5)", () => {
+    const prod = { NODE_ENV: "production", APP_ORIGIN: "https://app.nexora.ma", SESSION_SECRET: strong }
+    expect(() => loadConfig({ ...prod, DATABASE_URL: "postgresql://nx_web@db.internal:5432/nexora" })).toThrow(/sslmode=verify-full/)
+    expect(() => loadConfig({ ...prod, DATABASE_URL: "postgresql://nx_web@db.internal:5432/nexora?sslmode=require" })).toThrow(/sslmode=verify-full/)
+    expect(loadConfig({ ...prod, DATABASE_URL: "postgresql://nx_web@db/nexora?application_name=x&sslmode=verify-full" }).DATABASE_URL).toContain("verify-full")
+    expect(loadConfig({ DATABASE_URL: "postgresql://localhost/nexora" }).DATABASE_URL).toBeDefined() // development may use a local socket
+  })
+
+  it("reads the proxy hops and the cookie path from the environment (security plan G-7)", () => {
+    expect(loadConfig({}).TRUST_PROXY_HOPS).toBe(1)
+    expect(loadConfig({}).COOKIE_PATH_PREFIX).toBe("/api")
+    expect(loadConfig({ TRUST_PROXY_HOPS: "2", COOKIE_PATH_PREFIX: "" })).toMatchObject({ TRUST_PROXY_HOPS: 2, COOKIE_PATH_PREFIX: "" })
+    expect(() => loadConfig({ TRUST_PROXY_HOPS: "9" })).toThrow()
+    expect(() => loadConfig({ COOKIE_PATH_PREFIX: "api/" })).toThrow(/COOKIE_PATH_PREFIX/)
   })
 })

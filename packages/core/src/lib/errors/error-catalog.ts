@@ -387,6 +387,7 @@ export const ERROR_KEYS: Record<string, string> = {
   "This file was blocked because it may contain a virus": "err_fileInfected",
   "The password must have at least {min} characters": "err_passwordTooShort",
   "This password appeared in a known data leak. Choose another one": "err_passwordBreached",
+  "The e-mail or password is not right": "err_invalidCredentials",
   "Your role needs two-step sign-in. Set it up to continue": "err_twoFactorRequired",
   "This code is wrong or has expired": "err_twoFactorInvalid",
   // Server codes of the backend cahier des charges, Annex F
