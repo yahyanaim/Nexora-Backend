@@ -1,6 +1,6 @@
 import { uuidv7 } from "../../../db/uuid"
 import { memberChangeProblem, type MembershipStatus } from "../domain/owner-rules"
-import { DEFAULT_ROLES, grants, isMemberPermission, type Permission } from "../domain/permissions"
+import { covers, DEFAULT_ROLES, grants, isMemberPermission, type Permission } from "../domain/permissions"
 import type { MemberRecord, RoleRecord, WorkspaceStore, WorkspaceSummary, WorkspaceTransactions } from "../ports"
 
 /**
@@ -199,6 +199,11 @@ export function workspaceService(deps: { tx: WorkspaceTransactions; clock: { now
         // No version check: the row is locked for the change, and the member's own visits move its version (last_seen_at).
         const role = change.roleId && change.roleId !== before.roleId ? await loadRole(s, change.roleId) : null
         if (role && role.status !== "active") throw new WorkspaceRefusal("bad_input")
+        // No escalation: the member's current role and the new one stay within the actor's own rights.
+        const current = await loadRole(s, before.roleId)
+        if (!covers(ctx.permissions, current.permissions) || (role && !covers(ctx.permissions, role.permissions))) {
+          throw new WorkspaceRefusal("forbidden")
+        }
         const after = {
           roleId: role?.id ?? before.roleId,
           roleKey: role ? role.key : before.roleKey,
@@ -226,6 +231,7 @@ export function workspaceService(deps: { tx: WorkspaceTransactions; clock: { now
       await need(ctx, "createRole", info)
       const permissions = cleanPermissions(input.permissions)
       if (permissions.includes("*")) throw new WorkspaceRefusal("bad_input") // full rights stay with the administrator role
+      if (!covers(ctx.permissions, permissions)) throw new WorkspaceRefusal("forbidden")
       return tx.inWorkspace(ctx.workspaceId, ctx.principalId, async (s) => {
         const id = uuidv7()
         if (!(await s.createRole({ id, name: input.name.trim(), permissions }))) throw new WorkspaceRefusal("name_taken")
@@ -238,10 +244,12 @@ export function workspaceService(deps: { tx: WorkspaceTransactions; clock: { now
       await need(ctx, "updateRole", info)
       const permissions = input.permissions ? cleanPermissions(input.permissions) : undefined
       if (permissions?.includes("*")) throw new WorkspaceRefusal("bad_input")
+      if (permissions && !covers(ctx.permissions, permissions)) throw new WorkspaceRefusal("forbidden")
       return tx.inWorkspace(ctx.workspaceId, ctx.principalId, async (s) => {
         const before = await loadRole(s, roleId)
         // The default roles enforce Table 7 as written (AUZ-02); a company adds its own roles beside them.
         if (before.isDefault) throw new WorkspaceRefusal("default_role")
+        if (!covers(ctx.permissions, before.permissions)) throw new WorkspaceRefusal("forbidden")
         if (before.version !== input.version) throw new WorkspaceRefusal("conflict")
         const next = { name: input.name?.trim() ?? before.name, permissions: permissions ?? before.permissions }
         if (!(await s.updateRole(roleId, next))) throw new WorkspaceRefusal("name_taken")
@@ -255,6 +263,7 @@ export function workspaceService(deps: { tx: WorkspaceTransactions; clock: { now
       await tx.inWorkspace(ctx.workspaceId, ctx.principalId, async (s) => {
         const role = await loadRole(s, roleId)
         if (role.isDefault) throw new WorkspaceRefusal("default_role")
+        if (!covers(ctx.permissions, role.permissions)) throw new WorkspaceRefusal("forbidden")
         if (role.members > 0) throw new WorkspaceRefusal("role_in_use")
         await s.deleteRole(roleId)
         await s.audit({ ...info, actorRole: actorRole(ctx), action: "role.deleted", targetType: "role", targetId: roleId, targetLabel: role.name, before: { name: role.name, permissions: [...role.permissions].sort() } })

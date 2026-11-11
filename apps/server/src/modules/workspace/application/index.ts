@@ -16,6 +16,6 @@ export {
   type WorkspaceCommand,
   type WorkspaceService,
 } from "./workspaces"
-export { ALL_PERMISSIONS, DEFAULT_ROLES, MEMBER_PERMISSIONS, grants, isMemberPermission, isStaffPermission, type DefaultRoleKey, type Permission } from "../domain/permissions"
+export { ALL_PERMISSIONS, covers, DEFAULT_ROLES, MEMBER_PERMISSIONS, grants, isMemberPermission, isStaffPermission, type DefaultRoleKey, type Permission } from "../domain/permissions"
 export { memberChangeProblem, type MemberChangeProblem, type MemberState, type MembershipStatus } from "../domain/owner-rules"
 export type { WorkspaceSummary, WorkspaceTransactions } from "../ports"

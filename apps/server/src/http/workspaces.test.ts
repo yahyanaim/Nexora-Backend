@@ -269,6 +269,39 @@ describe.skipIf(!ADMIN_URL)("workspaces, memberships and roles (B1b step 3)", ()
     ])
   })
 
+  it("lets nobody hand out rights they do not hold, even with users:update and roles:create (no escalation)", async () => {
+    const { id, owner } = await company()
+    const base = `/app/v1/workspaces/${id}`
+    const o = await signIn(owner.email)
+    const lead = await o.send("post", `${base}/roles`, { name: "Team lead", permissions: ["users:read", "users:update", "roles:create", "roles:update", "projects:read"] })
+    const viewer = await o.send("post", `${base}/roles`, { name: "Viewer", permissions: ["projects:read"] })
+    const p = await user()
+    const q = await user()
+    const pm = await join(id, p.id, "employee")
+    const qm = await join(id, q.id, "employee")
+    expect((await o.send("patch", `${base}/members/${pm}`, { roleId: lead.body.role.id })).status).toBe(200)
+    const s = await signIn(p.email)
+    // Promoting oneself or someone else to Administrator, or to a role with more rights: refused.
+    for (const [mid, rid] of [[pm, await roleId(id, "admin")], [qm, await roleId(id, "admin")], [qm, await roleId(id, "manager")]]) {
+      const res = await s.send("patch", `${base}/members/${mid}`, { roleId: rid })
+      expect([res.status, code(res)]).toEqual([403, "err_forbidden"])
+    }
+    // Changing a member whose role holds more than one's own (the owner): refused.
+    const ownerMid = (await db.admin.query("SELECT id FROM tenant.memberships WHERE workspace_id = $1 AND user_id = $2", [id, owner.id])).rows[0]!.id
+    expect((await s.send("patch", `${base}/members/${ownerMid}`, { status: "disabled" })).status).toBe(403)
+    // Creating or widening a role beyond one's own rights: refused; within them: allowed.
+    expect((await s.send("post", `${base}/roles`, { name: "Wide", permissions: ["costs:read"] })).status).toBe(403)
+    expect((await s.send("patch", `${base}/roles/${viewer.body.role.id}`, { permissions: ["projects:read", "invoices:read"], version: 1 })).status).toBe(403)
+    const narrow = await s.send("post", `${base}/roles`, { name: "Narrow", permissions: ["projects:read"] })
+    expect(narrow.status).toBe(201)
+    // q is an employee (files and time rights the lead lacks): out of reach until the owner moves them to Viewer.
+    expect((await s.send("patch", `${base}/members/${qm}`, { roleId: narrow.body.role.id })).status).toBe(403)
+    expect((await o.send("patch", `${base}/members/${qm}`, { roleId: viewer.body.role.id })).status).toBe(200)
+    expect((await s.send("patch", `${base}/members/${qm}`, { roleId: narrow.body.role.id })).status).toBe(200)
+    const roles = await db.admin.query("SELECT r.name FROM tenant.roles r JOIN tenant.memberships m ON m.role_id = r.id WHERE m.id = ANY($1) ORDER BY r.name", [[pm, qm]])
+    expect(roles.rows.map((r) => r.name)).toEqual(["Narrow", "Team lead"])
+  })
+
   it("never reaches another company's records through one's own workspace path (TEN-04)", async () => {
     const a = await company()
     const b = await company()

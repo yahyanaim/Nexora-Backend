@@ -27,6 +27,14 @@ export function grants(held: readonly string[], needed: Permission): boolean {
   return held.includes("*") || held.includes(needed)
 }
 
+/**
+ * No escalation: a person may hand out, take away or edit only rights they
+ * hold themselves. True when the permissions held cover every one of `asked`.
+ */
+export function covers(held: readonly string[], asked: readonly string[]): boolean {
+  return held.includes("*") || asked.every((p) => p !== "*" && held.includes(p))
+}
+
 export type DefaultRoleKey = "admin" | "manager" | "accountant" | "employee"
 
 /**

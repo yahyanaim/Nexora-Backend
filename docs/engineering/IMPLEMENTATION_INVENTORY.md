@@ -84,7 +84,7 @@ The front-end column counts the API modules in `Nexora-Saas/src/lib/api` (56 in 
 | Front-end unit and component tests | 143 files, 870 tests | Local and CI |
 | Front-end end to end (Playwright, mock API) | CI job "End-to-end" | CI |
 | Front-end accessibility (axe, console and company pages) | CI job | CI |
-| Back-end server tests | 181 after B1b step 3, 163 after B1b step 2, 142 after B1b step 1, 115 after step 6 (99 after step 5, 88 after step 4, 72 after step 1) (database suites on real PostgreSQL 16) | Local with `TEST_DATABASE_ADMIN_URL`; always in CI |
+| Back-end server tests | 183 after B1b step 3, 163 after B1b step 2, 142 after B1b step 1, 115 after step 6 (99 after step 5, 88 after step 4, 72 after step 1) (database suites on real PostgreSQL 16) | Local with `TEST_DATABASE_ADMIN_URL`; always in CI |
 | Back-end script tests (`sync-core.mjs`: pin, drift, refusals) | 5 (step 3) | Local and CI (`npm test`) |
 | Back-end core rule tests | 136 | Local and CI |
 | Contract tests front end ↔ back end | 🟡 error body (same example on both sides); session cookies and `err_csrf` with B1b; module shapes come with each module | Local and CI |

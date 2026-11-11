@@ -2,7 +2,7 @@ import { AdminPermissionsPlatform } from "@nexora/core/types/roles"
 import { WORK_ROLE_PERMISSIONS, WorkRole } from "@nexora/core/types/workforce"
 import { describe, expect, it } from "vitest"
 import { memberChangeProblem, type MemberState } from "./owner-rules"
-import { ALL_PERMISSIONS, DEFAULT_ROLES, grants, isMemberPermission, MEMBER_PERMISSIONS } from "./permissions"
+import { ALL_PERMISSIONS, covers, DEFAULT_ROLES, grants, isMemberPermission, MEMBER_PERMISSIONS } from "./permissions"
 
 describe("permission catalogue (§10.1)", () => {
   it("is the shared enum, with the console's areas kept out of company roles", () => {
@@ -18,6 +18,15 @@ describe("permission catalogue (§10.1)", () => {
     expect(grants(["projects:read"], "projects:update")).toBe(false)
     expect(grants(["*"], "costs:read")).toBe(true)
     expect(grants([], "projects:read")).toBe(false)
+  })
+
+  it("lets a person hand out only rights they hold (no escalation)", () => {
+    expect(covers(["*"], ["*"])).toBe(true)
+    expect(covers(["*"], ["costs:read"])).toBe(true)
+    expect(covers(["users:update", "projects:read"], ["projects:read"])).toBe(true)
+    expect(covers(["users:update", "projects:read"], ["projects:read", "costs:read"])).toBe(false)
+    expect(covers(["users:update"], ["*"])).toBe(false)
+    expect(covers(["users:update"], [])).toBe(true)
   })
 
   it("seeds the four default roles from the shared role table, without the portal contact (Table 7)", () => {
