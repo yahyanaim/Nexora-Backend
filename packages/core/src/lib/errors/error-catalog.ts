@@ -398,6 +398,7 @@ export const ERROR_KEYS: Record<string, string> = {
   "This code is wrong or has expired": "err_twoFactorInvalid",
   // Server codes of the backend cahier des charges, Annex F
   "Confirm it's you with your two-step code to continue": "err_stepUpRequired",
+  "Your session is locked. Enter your passcode to continue": "err_sessionLocked",
   "This workspace is read-only. Pay or choose a plan to make changes again": "err_workspaceReadOnly",
   "This request was already sent with different details. Reload and try again": "err_idempotencyMismatch",
   "Something went wrong on our side. Try again; if it happens again, give support the code {requestId}": "err_internal",
