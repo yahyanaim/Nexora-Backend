@@ -68,7 +68,7 @@ Done in six pull requests, in this order, each with its own tests and checks; th
 | 2.3 | Worker heartbeat and metrics log (queue depth, oldest due, dead, outbox lag) | M-3, JOB-09 | ✅ step 5 (`ops.worker_heartbeats`, `workerHealth()`); the alert channel that reads it comes with monitoring (B2) |
 | 2.4 | Audit seal and verify jobs (`audit.seals`) | M-4, TRL-05 | ✅ step 5; retention (TRL-06) stays in phase 8 |
 | 2.5 | Exit gate (B1a step 4): guard suite, privilege suite, audit secret scan (TRL-04) | Cahier B1a gate | ✅ step 6: `privileges.test.ts`, `audit-secrets.test.ts` (with migration 0008), guard tests listed in the inventory |
-| 2.6 | Security plan G-1 to G-4: actions pinned to a commit, secret scan in CI, Dependabot security updates, a test that refuses string-built SQL | `SECURITY_PLAN.md`; SCR-02, SCR-06, SCR-10 | ✅ step 6 (both repositories); the owner switches on GitHub secret scanning and Dependabot security updates in the settings |
+| 2.6 | Security plan G-1 to G-4: actions pinned to a commit, secret scan in CI, Dependabot security updates, a test that refuses string-built SQL | `SECURITY_PLAN.md`; SCR-02, SCR-06, SCR-10 | ✅ step 6 (both repositories); GitHub secret scanning, push protection and Dependabot security updates on in both (11 Nov) |
 
 ### Phase 3: Identity, authentication, authorization (B1b) 🔄
 
