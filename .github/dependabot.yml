@@ -7,6 +7,11 @@ updates:
     schedule:
       interval: weekly
     open-pull-requests-limit: 5
+    ignore:
+      # A major version changes behaviour: it is upgraded by hand, one package at a
+      # time, in its own reviewed pull request. Minor and patch updates come here.
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
     groups:
       production:
         dependency-type: production
