@@ -162,6 +162,18 @@ The member realm (`nx_app`) reads, adds and updates these rows, because sign-in 
 | `identity.sign_in_failures` | Failed sign-ins and the 15-minute lock per e-mail tried, by SHA-256 of the e-mail | One row per e-mail, known or not, so a lock never reveals an account; deleted at the next success; rows untouched for a day are removed |
 | `ops.rate_limits` | Fixed-window counters, e.g. failed sign-ins per client address (10 per 15 minutes) | The bucket is a purpose and a SHA-256: no address in clear; old windows removed by whoever writes |
 
+## 12. Second factor and passcode (§8, Table 18; B1b step 4, migration `0012`)
+
+| Table | What it is | Rules |
+|---|---|---|
+| `identity.second_factors` | A principal's TOTP factor: the secret sealed by the application (AES-256-GCM, SCR-07), when it was enabled, the last 30-second step accepted | No row in clear; a code of a step already accepted is refused; a row without `enabled_at` is a set-up waiting for its first code |
+| `identity.recovery_codes` | Ten per principal, SHA-256, used once | Replaced as a whole when new codes are made |
+| `identity.sign_in_challenges` | The second step of a sign-in: the token as SHA-256, the person, attempts, expiry | At most 5 minutes and 5 codes; used once |
+| `identity.passcodes` | The lock-screen passcode of a member: Argon2id hash and failed attempts | The fifth failure ends the session (`revoked_reason = 'passcode_failed'`) |
+| `identity.sessions.second_factor_at` | When the session last gave its second factor (sign-in or step-up) | Fresh for 5 minutes (IAM-06) |
+
+`nx_app` reads and writes these (sign-in happens before any workspace is known); the privilege suite holds the exact rights.
+
 ## 11. Memberships, roles and permissions (§3.3, §7.2, §10; B1b step 3, migration `0011`)
 
 | Table or function | What it is | Rules |

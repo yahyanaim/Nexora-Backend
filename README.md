@@ -37,7 +37,7 @@ The API contract the server follows is `docs/API_CONTRACT.md` in the web reposit
 | `npm run db:migrate -w @nexora/server` | Apply pending migrations (`MIGRATION_DATABASE_URL`, as `nx_owner`) |
 | `npm run worker -w @nexora/server` | Start the worker process (`DATABASE_URL` of the `nx_worker` login): relays the outbox, runs the scheduler and the jobs |
 
-Copy `.env.example` to `.env` for local settings. Production refuses to start without a strong `SESSION_SECRET` and an https `APP_ORIGIN`.
+Copy `.env.example` to `.env` for local settings. Production refuses to start without a strong `SESSION_SECRET`, a different strong `ENCRYPTION_KEY` and an https `APP_ORIGIN`.
 
 ## Status
 

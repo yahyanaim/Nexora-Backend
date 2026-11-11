@@ -50,7 +50,7 @@ The rules are written once, in the web repository (`src/lib/workforce`, `src/lib
 
 | Part | File | What it does | Requirements |
 |---|---|---|---|
-| Configuration | `src/config/config.ts` | The only place that reads the environment. Production refuses to start with a missing, short or example `SESSION_SECRET`, or an `APP_ORIGIN` that is not https, and lists every problem | ARC-04 |
+| Configuration | `src/config/config.ts` | The only place that reads the environment. Production refuses to start with a missing, short or example `SESSION_SECRET` or `ENCRYPTION_KEY` (or the two equal), or an `APP_ORIGIN` that is not https, and lists every problem | ARC-04 |
 | HTTP application | `src/http/app.ts` | Request id (kept when well-formed), security headers, 1 MB body limit, `/health/live` and `/health/ready` (readiness checks plug in), unknown routes and errors returned as `{ code, values, requestId }` | QAL-05, SCR-04 |
 | Errors | `src/http/errors.ts`, `src/http/error-body.ts` | `AppError(status, code, values)`. Every error leaves as `{ code, values, requestId, message? }` (decision E1); a contract test checks the body on every error path, and the web application tests its translation with the same body. Codes are the web catalogue's keys; a test fails if the server uses a code the catalogue lacks | ARC-08, ARC-13 |
 | Entry points | `src/main.ts`, `src/worker-main.ts` | The web process: on SIGTERM stops taking requests, closes the pool and exits within 20 s. The worker process (same image, `npm run worker`): on SIGTERM stops claiming and gives back an unfinished job within 30 s | ARC-05, QAL-13, JOB-08 |
@@ -90,6 +90,17 @@ The import rules of §3.3 apply: the domain imports nothing, the application onl
 | Guards | `http/guards.ts`, `http/cookies.ts` | `Origin` check on every write; the session of the route's realm; `X-XSRF-TOKEN` compared with the session's hash; cookies `nx_m` (path `/api/app`), `nx_m_r` (path `/api/app/v1/auth`), `XSRF-TOKEN` (readable), all `SameSite=Lax`, `Secure` over https | SCR-16, ADR-007 |
 | Access log | `http/access-log.ts`, `config/logging.ts` | One line per request with request id, path without query, status, duration, principal and realm; cookies, credentials and database error details redacted in both processes | QAL-07, G-6 |
 | Configuration | `config/config.ts` | `TRUST_PROXY_HOPS` (G-7), `COOKIE_PATH_PREFIX`; production refuses a database URL without `sslmode=verify-full` (G-5) | SCR-01 |
+
+**Second factor, step-up, sessions and passcode (B1b step 4).**
+
+| Part | File | What it does | Requirements |
+|---|---|---|---|
+| Rules | `modules/identity/domain/second-factor.ts` | A challenge lasts 5 minutes and takes 5 codes; ten recovery codes; a second factor is fresh for 5 minutes; a passcode has 4 to 8 digits and the fifth wrong one ends the session | IAM-05, IAM-06, IAM-18 |
+| TOTP and encryption | `infrastructure/totp.ts`, `infrastructure/secret-box.ts` | RFC 6238 codes (checked against the RFC's test vectors), the step before or after accepted, a step never accepted twice; secrets sealed with AES-256-GCM under a key derived from `ENCRYPTION_KEY` (required in production, different from `SESSION_SECRET`) | IAM-05, SCR-07 |
+| Sign-in | `application/auth.ts` | With a second factor, the right password opens a challenge, not a session; a code or a recovery code (once each) opens it. After the idle limit, `refresh` answers *locked* when a passcode is set; `unlock` takes the passcode with the refresh cookie until the absolute limit. Sessions list; ending one's own other sessions; an administrator ends a member's | IAM-05, IAM-07, IAM-18, §8.2 rule 5 |
+| Management | `application/second-factor.ts` | Set-up (secret shown once), enabling with a first code **and the password**, turning off with the password and a code (refused when required), new recovery codes, step-up with an app code, passcode set with the password | IAM-05, IAM-06, IAM-16 |
+| Gate | `modules/workspace/application/workspaces.ts` | Owners, administrators and accountants are refused every company page (`err_twoFactorRequired`) until they have a second factor; moving ownership needs a fresh one (`err_stepUpRequired`) | IAM-05, IAM-06 |
+| Routes | `http/auth-routes.ts` | `POST /app/v1/auth/2fa/verify`, `GET /auth/2fa`, `POST /auth/2fa/setup`, `/enable`, `/disable`, `/recovery-codes`, `POST /auth/step-up`, `PUT`/`DELETE /auth/passcode`, `POST /auth/passcode-verify`, `GET`/`DELETE /app/v1/me/sessions[/:id]`; `DELETE /app/v1/workspaces/:wid/members/:id/sessions` | API contract §4.1 |
 
 **Second module: `modules/workspace` (B1b step 3).** Workspaces, memberships, roles and the permission engine.
 

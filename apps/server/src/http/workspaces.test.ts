@@ -8,6 +8,8 @@ import { ADMIN_URL, createTestDb, type TestDb } from "../db/testing/test-db"
 import { uuidv7 } from "../db/uuid"
 import { createIdentity } from "../modules/identity/infrastructure/index"
 import { argon2Hasher } from "../modules/identity/infrastructure/argon2-hasher"
+import { aesGcmBox } from "../modules/identity/infrastructure/secret-box"
+import { base32Decode, hotp, totp } from "../modules/identity/infrastructure/totp"
 import { DEFAULT_ROLES, PERMISSION_OF, type WorkspaceService } from "../modules/workspace/application/index"
 import { createWorkspaces } from "../modules/workspace/infrastructure/index"
 import { createApp } from "./app"
@@ -25,13 +27,17 @@ describe.skipIf(!ADMIN_URL)("workspaces, memberships and roles (B1b step 3)", ()
   let app: ReturnType<typeof createApp>
   let workspaces: WorkspaceService
   let hash: string
+  const SECRET = totp.newSecret()
+  const box = aesGcmBox("k".repeat(40), "second-factor")
+  /** The current code of the test accounts' authenticator. */
+  const currentCode = () => hotp(base32Decode(SECRET), Math.floor(Date.now() / 30_000))
 
   beforeAll(async () => {
     db = await createTestDb()
     hash = await argon2Hasher.hash(PASSWORD)
     const config = loadConfig({ APP_ORIGIN: ORIGIN, COOKIE_PATH_PREFIX: "/api" })
     workspaces = createWorkspaces({ pool: db.web })
-    app = createApp({ config, logger: pino({ level: "silent" }), auth: createIdentity({ pool: db.web, sessionSecret: "x".repeat(40) }).auth, workspaces })
+    app = createApp({ config, logger: pino({ level: "silent" }), auth: createIdentity({ pool: db.web, sessionSecret: "x".repeat(40), encryptionKey: "k".repeat(40) }).auth, workspaces })
   }, 60_000)
   afterAll(async () => db?.drop())
 
@@ -40,6 +46,8 @@ describe.skipIf(!ADMIN_URL)("workspaces, memberships and roles (B1b step 3)", ()
     const email = `u-${id.slice(-12)}@atlas.ma`
     await db.admin.query("INSERT INTO identity.principals (id, kind, reference, display_name) VALUES ($1, 'member', $2, $3)", [id, `user:${id}`, name])
     await db.admin.query("INSERT INTO identity.users (id, email, name, status, password_hash) VALUES ($1, $2, $3, 'active', $4)", [id, email, name, hash])
+    // Owners, administrators and accountants need a second factor (B1b step 4): every test account has one.
+    await db.admin.query("INSERT INTO identity.second_factors (principal_id, secret_enc, enabled_at) VALUES ($1, $2, now())", [id, box.seal(SECRET)])
     return { id, email }
   }
 
@@ -71,7 +79,11 @@ describe.skipIf(!ADMIN_URL)("workspaces, memberships and roles (B1b step 3)", ()
   }
 
   async function signIn(email: string) {
-    const res = await request(app).post("/app/v1/auth/login").set("Origin", ORIGIN).send({ email, password: PASSWORD })
+    const first = await request(app).post("/app/v1/auth/login").set("Origin", ORIGIN).send({ email, password: PASSWORD })
+    expect(first.body.twoFactorRequired).toBe(true)
+    // Each code is accepted once: the test forgets the last step so that one person can sign in twice in 30 seconds.
+    await db.admin.query("UPDATE identity.second_factors SET last_step = 0 WHERE principal_id = (SELECT id FROM identity.users WHERE email = $1)", [email])
+    const res = await request(app).post("/app/v1/auth/2fa/verify").set("Origin", ORIGIN).send({ challengeId: first.body.challengeId, code: currentCode() })
     expect(res.status).toBe(200)
     const jar: Record<string, string> = {}
     for (const c of ([] as string[]).concat(res.headers["set-cookie"] ?? [])) {
@@ -331,7 +343,7 @@ describe.skipIf(!ADMIN_URL)("workspaces, memberships and roles (B1b step 3)", ()
 
   it("hands the application a frozen tenant context that cannot be changed after resolution (TEN-03)", async () => {
     const { id, owner } = await company()
-    const ctx = await workspaces.resolve(owner.id, id, { ip: null, userAgent: null, requestId: null, sessionId: null })
+    const ctx = await workspaces.resolve(owner.id, id, { ip: null, userAgent: null, requestId: null, sessionId: null }, { twoFactorEnabled: true, stepUpFresh: false })
     expect(ctx).toMatchObject({ workspaceId: id, principalId: owner.id, roleKey: "admin", isOwner: true })
     expect(() => {
       ;(ctx as { workspaceId: string }).workspaceId = uuidv7()
