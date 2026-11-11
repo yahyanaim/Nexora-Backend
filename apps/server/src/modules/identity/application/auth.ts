@@ -62,6 +62,8 @@ export interface SessionContext {
   readonly principalId: string
   readonly realm: Realm
   readonly xsrfHash: string
+  /** Chosen with PUT /app/v1/auth/workspace; checked against the memberships when used. */
+  readonly activeWorkspaceId: string | null
   readonly user: Readonly<PublicUser>
 }
 
@@ -79,6 +81,8 @@ export interface AuthService {
   refresh(refreshToken: string, client: ClientInfo): Promise<IssuedSession | null>
   signOut(sessionId: string, client: ClientInfo): Promise<void>
   authenticate(accessToken: string, realm: Realm): Promise<SessionContext | null>
+  /** Records the workspace the session works in; the caller has checked the membership. */
+  setActiveWorkspace(sessionId: string, workspaceId: string | null): Promise<void>
 }
 
 const publicUser = (u: UserRecord): PublicUser => ({ id: u.id, email: u.email, name: u.name, locale: u.locale })
@@ -209,8 +213,12 @@ export function authService(deps: AuthDeps): AuthService {
           const limits = SESSION_LIMITS[realm]
           await s.touchSession(session.id, now, new Date(Math.min(now.getTime() + limits.idleMinutes * 60_000, session.absoluteExpiresAt.getTime())))
         }
-        return Object.freeze({ sessionId: session.id, principalId: session.principalId, realm, xsrfHash: session.xsrfHash, user: Object.freeze(publicUser(user)) })
+        return Object.freeze({ sessionId: session.id, principalId: session.principalId, realm, xsrfHash: session.xsrfHash, activeWorkspaceId: session.activeWorkspaceId ?? null, user: Object.freeze(publicUser(user)) })
       })
+    },
+
+    async setActiveWorkspace(sessionId, workspaceId) {
+      await tx.run((s) => s.setActiveWorkspace(sessionId, workspaceId))
     },
   }
 }

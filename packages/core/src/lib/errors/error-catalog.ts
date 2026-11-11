@@ -388,6 +388,12 @@ export const ERROR_KEYS: Record<string, string> = {
   "The password must have at least {min} characters": "err_passwordTooShort",
   "This password appeared in a known data leak. Choose another one": "err_passwordBreached",
   "The e-mail or password is not right": "err_invalidCredentials",
+  "Only an owner of the company can do this": "err_wsOwnerOnly",
+  "An owner must have the Administrator role": "err_wsOwnerNeedsAdmin",
+  "The company must keep at least one active owner": "err_wsLastOwner",
+  "Default roles can't be changed. Create a new role instead": "err_defaultRoleFixed",
+  "This role is still given to members. Move them to another role first": "err_roleInUse",
+  "A role with this name already exists": "err_roleNameTaken",
   "Your role needs two-step sign-in. Set it up to continue": "err_twoFactorRequired",
   "This code is wrong or has expired": "err_twoFactorInvalid",
   // Server codes of the backend cahier des charges, Annex F

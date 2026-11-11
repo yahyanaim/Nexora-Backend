@@ -28,7 +28,7 @@ Interactive diagrams: [the tables built today](diagrams/database.html), [the pla
 | `nx_platform` | Console requests, platform jobs | `platform`; **no privilege on `tenant`** (SEC-02, TEN-10) |
 | `nx_support` | Requests inside an approved support session | Nothing yet: its policy comes with support sessions (B1f) |
 | `nx_dataops` | Export and deletion jobs | `tenant` read and delete, one workspace at a time |
-| `nx_provision` | Owns the crossing functions (§6.2) | — |
+| `nx_provision` | Creates companies (§6.2) | Executes `tenant.provision_workspace` only |
 | `nx_readonly` | Restore tests, readiness, reconciliation | `tenant` read, `ops.schema_migrations` |
 | `nx_jobs` | The worker's queue work | Every row of `ops.outbox`, `ops.jobs`, `ops.schedules` and `ops.worker_heartbeats`; creates `system:<job>` principals; runs `audit.seal()` and `audit.verify()`. **No tenant table and no audit event**: tenant work in a job runs under `nx_app` |
 
@@ -161,4 +161,19 @@ The member realm (`nx_app`) reads, adds and updates these rows, because sign-in 
 |---|---|---|
 | `identity.sign_in_failures` | Failed sign-ins and the 15-minute lock per e-mail tried, by SHA-256 of the e-mail | One row per e-mail, known or not, so a lock never reveals an account; deleted at the next success; rows untouched for a day are removed |
 | `ops.rate_limits` | Fixed-window counters, e.g. failed sign-ins per client address (10 per 15 minutes) | The bucket is a purpose and a SHA-256: no address in clear; old windows removed by whoever writes |
+
+## 11. Memberships, roles and permissions (§3.3, §7.2, §10; B1b step 3, migration `0011`)
+
+| Table or function | What it is | Rules |
+|---|---|---|
+| `identity.permissions` | The permission catalogue: every value of `AdminPermissionsPlatform`, with its realm (`member` or `staff`) | A test keeps it equal to the shared enum; read by `nx_app` |
+| `tenant.roles` | The roles of a company: the four default ones (`key` admin, manager, accountant, employee) and custom ones (`key` null) | Name unique per company in any case; tenant table (row-level security, stamps) |
+| `tenant.role_permissions` | The permissions of a role | Foreign key to the catalogue **for the member realm only**, so a company role cannot hold a console permission; removed with its role |
+| `tenant.memberships` | The only link between a person and a company (TEN-02): role, owner flag, employee (from B3), status, invited, activated and last seen | One per person and company; never deleted by `nx_app` (disabled instead); an owner holds the administrator role (trigger); at commit, a company keeps an active owner (deferred constraint trigger `LAST_OWNER`) |
+| `tenant.my_memberships()` | The active memberships of the principal of the transaction, across companies | `SECURITY DEFINER`, search path fixed; the only read across workspaces, limited to one's own rows |
+| `tenant.provision_workspace(…)` | A new company: the workspace, its default roles with the permissions the application passes (from the shared role table) and the owner's active membership | Executed by `nx_provision` only; needs `app.principal_id` |
+| `identity.sessions.active_workspace_id` | The company a session works in when a path names none | Set by `PUT /app/v1/auth/workspace` after the membership check |
+| `audit.identity_events.requested_workspace` | The company asked for in a refused request (`workspace.access_refused`) | Not named `workspace_id`: the trail is not a tenant table |
+
+The functions run as the schema owner, which row-level security also binds (tables are `FORCE`d): migration `0011` gives the owner its own policy on the four tables. `nx_provision` is now a role a process can take (`src/db/session.ts`); the web login gets it when sign-up comes (B2).
 

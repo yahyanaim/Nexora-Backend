@@ -3,8 +3,8 @@ import type { Logger } from "pino"
 
 /**
  * One log line per request (QAL-07, audit M-5): request id, method, path
- * without its query, status, duration, and the principal and realm once a
- * session is known. Never a cookie, a header value, a body or a query string
+ * without its query, status, duration, the principal and realm once a
+ * session is known, and the workspace once resolved. Never a cookie, a header value, a body or a query string
  * (security plan G-6).
  */
 export function accessLog(logger: Logger): RequestHandler {
@@ -20,6 +20,7 @@ export function accessLog(logger: Logger): RequestHandler {
           durationMs: Number((process.hrtime.bigint() - started) / 1_000_000n),
           principalId: req.session?.principalId,
           realm: req.session?.realm,
+          workspaceId: req.tenant?.workspaceId,
         },
         "request",
       )

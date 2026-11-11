@@ -51,6 +51,8 @@ export interface SessionRecord {
   absoluteExpiresAt: Date
   xsrfHash: string
   revokedAt: Date | null
+  /** The workspace the session works in when a path names none (§5.5 step 4). */
+  activeWorkspaceId?: string | null
 }
 
 export interface RefreshRecord {
@@ -91,6 +93,7 @@ export interface IdentityStore {
   touchSession(id: string, lastActivityAt: Date, idleExpiresAt: Date): Promise<void>
   /** Ends a session and every refresh token it still holds. */
   revokeSession(id: string, reason: RevokeReason): Promise<void>
+  setActiveWorkspace(sessionId: string, workspaceId: string | null): Promise<void>
   addRefreshToken(token: { id: string; sessionId: string; tokenHash: string; expiresAt: Date }): Promise<void>
   /** Locks the row until the transaction ends, so two refreshes with one token cannot both succeed. */
   refreshTokenByHash(tokenHash: string): Promise<RefreshRecord | null>

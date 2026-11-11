@@ -35,7 +35,7 @@ _The real state of every part of Nexora, from the code, not from the plan. Updat
 | Privilege matrix of every role on every table and function | ✅ | migrations | DAT-02, TEN-10, SEC-02 | `privileges.test.ts` |
 | SQL never built from strings | ✅ | `src/architecture/sql-rules.ts` | SCR-02 | `sql-rules.test.ts` |
 | CI security: actions pinned to commits, secret scan, dependency updates | ✅ both repositories | `.github/workflows/ci.yml`, `.github/dependabot.yml`, `.gitleaks.toml` | SCR-06, SCR-10 | CI job "Secret scan" |
-| Access log with principal (workspace from step 3); log redaction in both processes | ✅ | `src/http/access-log.ts`, `src/config/logging.ts` | QAL-07 | `auth.test.ts`, `logging.test.ts` |
+| Access log with principal and workspace (B1b steps 2 and 3); log redaction in both processes | ✅ | `src/http/access-log.ts`, `src/config/logging.ts` | QAL-07 | `auth.test.ts`, `logging.test.ts` |
 
 ## 2. Business modules (cahier §5.3)
 
@@ -43,8 +43,8 @@ The front-end column counts the API modules in `Nexora-Saas/src/lib/api` (56 in 
 
 | Module | Front end | Back end: tables | Back end: endpoints | Cahier phase |
 |---|---|---|---|---|
-| identity (sign-in, sessions, 2FA, passcode, devices) | 🧪 `auth-apis`, `profile-api`, `me-api` | 🟡 `principals`, `users`, `sessions`, `refresh_tokens`, `sign_in_tokens` (B1b step 1); module `src/modules/identity` with password rule, Argon2id, lockout, session limits, tokens | 🟡 member sign-in, refresh, sign-out, `me` (B1b step 2); workspaces and permissions in step 3 | B1b |
-| workspace (settings, memberships, roles, plans and seats) | 🧪 `settings-api`, `access-api`, `workspace-subscription-api`, `tenant-modules` | 🟡 `tenant.workspaces` | ⬜ | B1b, B1c |
+| identity (sign-in, sessions, 2FA, passcode, devices) | 🧪 `auth-apis`, `profile-api`, `me-api` | 🟡 `principals`, `users`, `sessions`, `refresh_tokens`, `sign_in_tokens` (B1b step 1); module `src/modules/identity` with password rule, Argon2id, lockout, session limits, tokens | 🟡 member sign-in, refresh, sign-out, `me` (B1b step 2); active workspace of the session (step 3) | B1b |
+| workspace (settings, memberships, roles, plans and seats) | 🧪 `settings-api`, `access-api`, `workspace-subscription-api`, `tenant-modules` | 🟡 `tenant.workspaces`, `memberships`, `roles`, `role_permissions`, `identity.permissions`; `provision_workspace`, `my_memberships` (B1b step 3); module `src/modules/workspace` | 🟡 `me/workspaces`, switch, `{ws}/context`, members, roles (B1b step 3); settings and seats later | B1b, B1c |
 | people (employees, rates, documents, org chart, reviews, leave balances) | 🧪 `employees-api`, `documents-api`, `reviews-api`, `leave-api` | 🟡 `tenant.departments` | ⬜ | B1c |
 | relations (clients, contacts, leads, deals, CRM import, files, notes, satisfaction) | 🧪 `clients-api`, `crm-api`, `leads-api`, `deals-api`, `crm-import-api`, `client-files-api`, `client-requests-api`, `satisfaction-api` | ⬜ | ⬜ | B1c |
 | work (projects, tasks, milestones, cycles, pages, templates, views, change orders) | 🧪 `work-projects-api`, `task-collab-api`, `task-views-api`, `cycles-api`, `project-pages-api`, `project-templates-api`, `change-orders-api`, `resource-bookings-api` | ⬜ | ⬜ | B1c |
@@ -84,7 +84,7 @@ The front-end column counts the API modules in `Nexora-Saas/src/lib/api` (56 in 
 | Front-end unit and component tests | 143 files, 870 tests | Local and CI |
 | Front-end end to end (Playwright, mock API) | CI job "End-to-end" | CI |
 | Front-end accessibility (axe, console and company pages) | CI job | CI |
-| Back-end server tests | 163 after B1b step 2, 142 after B1b step 1, 115 after step 6 (99 after step 5, 88 after step 4, 72 after step 1) (database suites on real PostgreSQL 16) | Local with `TEST_DATABASE_ADMIN_URL`; always in CI |
+| Back-end server tests | 183 after B1b step 3, 163 after B1b step 2, 142 after B1b step 1, 115 after step 6 (99 after step 5, 88 after step 4, 72 after step 1) (database suites on real PostgreSQL 16) | Local with `TEST_DATABASE_ADMIN_URL`; always in CI |
 | Back-end script tests (`sync-core.mjs`: pin, drift, refusals) | 5 (step 3) | Local and CI (`npm test`) |
 | Back-end core rule tests | 136 | Local and CI |
 | Contract tests front end ↔ back end | 🟡 error body (same example on both sides); session cookies and `err_csrf` with B1b; module shapes come with each module | Local and CI |

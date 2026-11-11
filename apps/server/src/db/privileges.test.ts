@@ -23,6 +23,7 @@ const TABLES: Record<string, Record<string, string>> = {
   "identity.sign_in_failures": { nx_app: "SELECT INSERT UPDATE DELETE" },
   "identity.sign_in_tokens": { nx_app: "SELECT INSERT UPDATE" },
   "identity.users": { nx_app: "SELECT INSERT UPDATE" },
+  "identity.permissions": { nx_app: "SELECT" },
   "identity.principals": {
     nx_app: "SELECT INSERT", nx_dataops: "SELECT", nx_jobs: "SELECT INSERT", nx_platform: "SELECT INSERT",
     nx_portal: "SELECT INSERT", nx_readonly: "SELECT", nx_support: "SELECT",
@@ -34,6 +35,9 @@ const TABLES: Record<string, Record<string, string>> = {
   "ops.schema_migrations": { nx_app: "SELECT", nx_jobs: "SELECT", nx_platform: "SELECT", nx_readonly: "SELECT" },
   "ops.worker_heartbeats": { nx_jobs: "SELECT INSERT UPDATE DELETE", nx_platform: "SELECT" },
   "tenant.departments": { nx_app: "SELECT INSERT UPDATE DELETE", nx_dataops: "SELECT DELETE", nx_readonly: "SELECT" },
+  "tenant.memberships": { nx_app: "SELECT INSERT UPDATE", nx_dataops: "SELECT DELETE", nx_readonly: "SELECT" },
+  "tenant.role_permissions": { nx_app: "SELECT INSERT UPDATE DELETE", nx_dataops: "SELECT DELETE", nx_readonly: "SELECT" },
+  "tenant.roles": { nx_app: "SELECT INSERT UPDATE DELETE", nx_dataops: "SELECT DELETE", nx_readonly: "SELECT" },
   "tenant.workspaces": { nx_app: "SELECT UPDATE", nx_dataops: "SELECT DELETE", nx_readonly: "SELECT" },
 }
 
@@ -45,6 +49,8 @@ const FUNCTIONS: Record<string, string[]> = {
   "audit.verify()": ["nx_jobs"],
   "ops.current_principal()": EVERY_REQUEST_ROLE,
   "ops.current_workspace()": EVERY_REQUEST_ROLE,
+  "tenant.my_memberships()": ["nx_app"],
+  "tenant.provision_workspace(p_id uuid, p_name text, p_slug text, p_country text, p_currency text, p_time_zone text, p_locale text, p_owner uuid, p_roles jsonb)": ["nx_provision"],
 }
 
 describe.skipIf(!ADMIN_URL)("privilege suite (B1a exit gate)", () => {
