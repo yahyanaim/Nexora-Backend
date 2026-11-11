@@ -79,6 +79,18 @@ The rules are written once, in the web repository (`src/lib/workforce`, `src/lib
 
 The import rules of §3.3 apply: the domain imports nothing, the application only its domain and ports.
 
+**Sign-in and sessions (B1b step 2).**
+
+| Part | File | What it does | Requirements |
+|---|---|---|---|
+| Use cases | `modules/identity/application/auth.ts` | `signIn`: one answer for a wrong password and an unknown e-mail, a full verification every time, failures and the 15-minute lock kept per e-mail (hashed) whether an account exists or not, failures also counted per client address; a new session, refresh token and XSRF value at each sign-in. `refresh`: rotates the token under a row lock; a used token presented again ends the session. `authenticate`: on every request, reloads the session and the account (revoked, expired or disabled stops at once) and slides the idle limit at most once a minute | IAM-01, IAM-04, IAM-07, IAM-08, IAM-16 |
+| Store | `modules/identity/infrastructure/pg-store.ts` | Parameterised SQL as `nx_app`, no workspace; the identity trail stores e-mails as SHA-256; fixed-window counters in `ops.rate_limits` | IAM-09, SCR-02 |
+| Access token | `modules/identity/infrastructure/access-tokens.ts` | `v1.<payload>.<HMAC-SHA256>` of `{ sid, realm, exp }` with `SESSION_SECRET`; 15 minutes, never beyond the session's end | §8.2 |
+| Routes | `http/auth-routes.ts` | `POST /app/v1/auth/login`, `/refresh`, `/logout`, `GET /app/v1/auth/me` | API contract §2 |
+| Guards | `http/guards.ts`, `http/cookies.ts` | `Origin` check on every write; the session of the route's realm; `X-XSRF-TOKEN` compared with the session's hash; cookies `nx_m` (path `/api/app`), `nx_m_r` (path `/api/app/v1/auth`), `XSRF-TOKEN` (readable), all `SameSite=Lax`, `Secure` over https | SCR-16, ADR-007 |
+| Access log | `http/access-log.ts`, `config/logging.ts` | One line per request with request id, path without query, status, duration, principal and realm; cookies, credentials and database error details redacted in both processes | QAL-07, G-6 |
+| Configuration | `config/config.ts` | `TRUST_PROXY_HOPS` (G-7), `COOKIE_PATH_PREFIX`; production refuses a database URL without `sslmode=verify-full` (G-5) | SCR-01 |
+
 ### 3.2 Target shape (cahier des charges §5)
 
 A **modular monolith**: one deployable server, one PostgreSQL database, no microservices, broker or cache unless a measured need appears.

@@ -1,7 +1,10 @@
+import { randomBytes } from "node:crypto"
 import pino from "pino"
 import { ConfigError, loadConfig } from "./config/config"
-import { createApp } from "./http/app"
+import { loggerOptions } from "./config/logging"
 import { createPool, databaseReadiness } from "./db/pool"
+import { createApp } from "./http/app"
+import { createIdentity } from "./modules/identity/infrastructure/index"
 
 /** Web process entry point (ARC-05). The worker has its own: src/worker-main.ts. */
 function main() {
@@ -15,10 +18,13 @@ function main() {
     }
     throw error
   }
-  const logger = pino({ level: config.LOG_LEVEL, base: { service: "nexora-web" } })
+  const logger = pino(loggerOptions(config.LOG_LEVEL, "nexora-web"))
   const pool = config.DATABASE_URL ? createPool(config, (err) => logger.error({ err }, "idle database client failed")) : undefined
   const readiness = pool ? [databaseReadiness(pool)] : []
-  const server = createApp({ config, logger, readiness }).listen(config.PORT, () => logger.info({ port: config.PORT }, "web process listening"))
+  // Production refuses to start without a strong SESSION_SECRET (config); elsewhere a random one per start is enough.
+  const sessionSecret = config.SESSION_SECRET ?? randomBytes(32).toString("base64url")
+  const auth = pool ? createIdentity({ pool, sessionSecret }).auth : undefined
+  const server = createApp({ config, logger, readiness, auth }).listen(config.PORT, () => logger.info({ port: config.PORT }, "web process listening"))
 
   const stop = (signal: string) => {
     logger.info({ signal }, "stopping: no new requests, finishing current ones")

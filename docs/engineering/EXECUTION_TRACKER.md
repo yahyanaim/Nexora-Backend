@@ -1,6 +1,6 @@
 # Nexora: execution tracker
 
-_The engineering roadmap (phases 0–8) laid onto the delivery plan of the cahier des charges (phases B1a–B3, §21.2), with every open item. One phase is approved and worked at a time; each ends with its gate, tests and an updated inventory. Last update: 6 November 2026: Phase 1 steps 1 to 6 merged: **B1a complete** (10 November 2026). B1b started 11 November 2026: step 1 merged. Earlier: 5 November 2026, Phase 0 approved; decisions E1–E5 in the cahier des charges 2.2 (§1.2, §21.5). The step-by-step log is §8 of `docs/AUDIT.md`._
+_The engineering roadmap (phases 0–8) laid onto the delivery plan of the cahier des charges (phases B1a–B3, §21.2), with every open item. One phase is approved and worked at a time; each ends with its gate, tests and an updated inventory. Last update: 6 November 2026: Phase 1 steps 1 to 6 merged: **B1a complete** (10 November 2026). B1b started 11 November 2026: step 1 merged, step 2 open. Earlier: 5 November 2026, Phase 0 approved; decisions E1–E5 in the cahier des charges 2.2 (§1.2, §21.5). The step-by-step log is §8 of `docs/AUDIT.md`._
 
 **Legend:**
 - ✅ done
@@ -16,7 +16,7 @@ _The engineering roadmap (phases 0–8) laid onto the delivery plan of the cahie
 | 0 Audit and baseline | — | This audit, inventory, decisions, tracker | 1 day | ✅ approved, merged (#5, Nexora-Saas #140) |
 | 1 Contract and foundation hardening | B1a step 4 | Error body (E1), session contract (E2), pinned rules (ARC-12), import-rule test, contract tests (ARC-13) | 1 week | ✅ steps 1–6 merged (#7–#12, Nexora-Saas #142–#147) |
 | 2 Database, transactions, audit, workers | B1a steps 2–4 | Steps 2 and 3 (#3, #5); heartbeat and seals (#11); exit gate (#12) | — | ✅ B1a gate passed |
-| 3 Identity, authentication, authorization | B1b | Sessions, sign-in, CSRF, memberships, roles, permission engine, step-up, devices | 2–3 weeks | 🔄 step 1 ✅ (#19), step 2 next |
+| 3 Identity, authentication, authorization | B1b | Sessions, sign-in, CSRF, memberships, roles, permission engine, step-up, devices | 2–3 weeks | 🔄 step 1 ✅ (#19), step 2 🔄 |
 | 4 First vertical slice | B1c (part) | Client → project → member → time → submit → approve, end to end | 2–3 weeks | ⬜ |
 | 5 Core ERP modules | B1c (rest), B1e (reporting) | Settings, people, CRM features, work features, leave, operational reports | 5–6 weeks | ⬜ |
 | 6 Financial domain | B1d | Money adapter and property tests, idempotency, quotes, invoices, numbering, payments, VAT, journal | 4–5 weeks | ⬜ |
@@ -77,7 +77,7 @@ Done in five pull requests, in this order, each with its tests; the last one pas
 | Step | Items | State |
 |---|---|---|
 | 1 | Identity module and tables: accounts, sessions, refresh tokens, single-use tokens; Argon2id; 12-character rule with the leaked-password list; lockout rule; session limits per realm; random tokens stored hashed (part of 3.1) | ✅ merged (#19, Nexora-Saas #154) |
-| 2 | Member sign-in, sign-out, refresh with rotation and reuse detection, `me`; realm cookies; CSRF double submit and `Origin`; rate limits; identity audit events; access log with redaction; G-5 to G-7 (rest of 3.1, 3.2, 3.6, 3.7) | ⬜ |
+| 2 | Member sign-in, sign-out, refresh with rotation and reuse detection, `me`; realm cookies; CSRF double submit and `Origin`; rate limits; identity audit events; access log with redaction; G-5 to G-7 (rest of 3.1, 3.2, 3.6, 3.7) | 🔄 open, waits for the owner |
 | 3 | Workspaces and memberships, workspace in the path checked on every request, switch, owner rules; roles and the permission engine; denials audited (3.3, 3.4) | ⬜ |
 | 4 | Second factor (TOTP, recovery codes), step-up for sensitive actions, sessions list and revoke, passcode lock (3.5) | ⬜ |
 | 5 | Web application switched: `client.ts`, `proxy.ts`, `X-XSRF-TOKEN` (F11), mock API; sign-in end to end from the existing screens; isolation and permission suites (B1b gate) | ⬜ |

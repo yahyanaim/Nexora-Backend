@@ -25,6 +25,10 @@ const schema = z
     /** nx_owner, used only by the migration step. */
     MIGRATION_DATABASE_URL: z.string().regex(/^postgres(ql)?:\/\//, "MIGRATION_DATABASE_URL must be a postgres:// URL").optional(),
     DATABASE_POOL_MAX: z.coerce.number().int().min(1).max(20).default(10), // QAL-06: at most 20 per process
+    /** Proxies in front of the server (load balancer, Next.js rewrite): how many X-Forwarded-For hops to trust for the client address (G-7). */
+    TRUST_PROXY_HOPS: z.coerce.number().int().min(0).max(5).default(1),
+    /** The path the browser uses to reach the API on the app's origin (API_PROXY_TARGET): realm cookies are scoped under it. */
+    COOKIE_PATH_PREFIX: z.string().regex(/^(\/[a-z0-9-]+)*$/, "COOKIE_PATH_PREFIX must look like /api").default("/api"),
   })
   .superRefine((env, ctx) => {
     if (env.NODE_ENV !== "production") return
@@ -32,6 +36,10 @@ const schema = z
     if (!check.success) for (const issue of check.error.issues) ctx.addIssue({ code: "custom", path: ["SESSION_SECRET"], message: issue.message })
     if (!env.APP_ORIGIN.startsWith("https://")) ctx.addIssue({ code: "custom", path: ["APP_ORIGIN"], message: "APP_ORIGIN must use https in production" })
     if (!env.DATABASE_URL) ctx.addIssue({ code: "custom", path: ["DATABASE_URL"], message: "DATABASE_URL is required in production" })
+    // G-5, SCR-01: credentials and data never cross the network in clear, and the server's certificate is checked.
+    if (env.DATABASE_URL && !/[?&]sslmode=verify-full(&|$)/.test(env.DATABASE_URL)) {
+      ctx.addIssue({ code: "custom", path: ["DATABASE_URL"], message: "DATABASE_URL must use sslmode=verify-full in production" })
+    }
   })
 
 export type Config = z.infer<typeof schema>

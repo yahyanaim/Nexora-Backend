@@ -2,6 +2,9 @@ import { randomUUID } from "node:crypto"
 import express, { type RequestHandler } from "express"
 import type { Logger } from "pino"
 import type { Config } from "../config/config"
+import type { AuthService } from "../modules/identity/application/index"
+import { accessLog } from "./access-log"
+import { memberAuthRoutes } from "./auth-routes"
 import { errorHandler } from "./error-body"
 import { notFound } from "./errors"
 
@@ -16,13 +19,16 @@ export interface AppDeps {
   logger: Logger
   /** Readiness checks (database, storage, migrations) added by later phases (QAL-05). */
   readiness?: Array<() => Promise<void>>
+  /** Sign-in and sessions (B1b); without it the auth routes are not mounted. */
+  auth?: AuthService
 }
 
 /** Builds the HTTP application. Steps 1 of the request chain (§5.5): id, size limit, headers. */
-export function createApp({ logger, readiness = [] }: AppDeps) {
+export function createApp({ config, logger, readiness = [], auth }: AppDeps) {
   const app = express()
   app.disable("x-powered-by")
-  app.set("trust proxy", 1)
+  // How many proxies stand in front (security plan G-7): the client address of logs and rate limits depends on it.
+  app.set("trust proxy", config.TRUST_PROXY_HOPS)
 
   const requestId: RequestHandler = (req, res, next) => {
     const incoming = req.get("x-request-id")
@@ -41,7 +47,7 @@ export function createApp({ logger, readiness = [] }: AppDeps) {
     })
     next()
   }
-  app.use(requestId, securityHeaders, express.json({ limit: "1mb" }))
+  app.use(requestId, securityHeaders, accessLog(logger), express.json({ limit: "1mb" }))
 
   app.get("/health/live", (_req, res) => {
     res.json({ status: "ok" })
@@ -55,6 +61,11 @@ export function createApp({ logger, readiness = [] }: AppDeps) {
       res.status(503).json({ status: "unavailable" })
     }
   })
+
+  if (auth) {
+    const cookies = { pathPrefix: config.COOKIE_PATH_PREFIX, secure: config.NODE_ENV === "production" || config.APP_ORIGIN.startsWith("https://") }
+    app.use(memberAuthRoutes({ auth, appOrigin: config.APP_ORIGIN, cookies }))
+  }
 
   app.use((_req, _res, next) => next(notFound()))
 

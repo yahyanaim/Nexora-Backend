@@ -53,8 +53,15 @@ describe("lockout (IAM-04)", () => {
   it("starts counting again after the lock has run out, and after a success", () => {
     let s: LockState = { failedAttempts: 5, lockedUntil: later(15) }
     s = afterFailedAttempt(s, later(16))
-    expect(s).toEqual({ failedAttempts: 1, lockedUntil: null })
-    expect(afterSuccess()).toEqual({ failedAttempts: 0, lockedUntil: null })
+    expect(s).toEqual({ failedAttempts: 1, lockedUntil: null, lastFailureAt: later(16) })
+    expect(afterSuccess()).toEqual({ failedAttempts: 0, lockedUntil: null, lastFailureAt: null })
+  })
+
+  it("forgets failures more than 15 minutes old, so four mistakes last week and one today do not lock", () => {
+    const old: LockState = { failedAttempts: 4, lockedUntil: null, lastFailureAt: later(-60 * 24 * 7) }
+    expect(afterFailedAttempt(old, now)).toEqual({ failedAttempts: 1, lockedUntil: null, lastFailureAt: now })
+    const recent: LockState = { failedAttempts: 4, lockedUntil: null, lastFailureAt: later(-10) }
+    expect(isLocked(afterFailedAttempt(recent, now), now)).toBe(true)
   })
 })
 
