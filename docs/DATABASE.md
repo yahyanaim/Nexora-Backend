@@ -144,3 +144,14 @@ Company roles can add rows but never read the queue tables.
 - **Fairness.** A workspace never runs two jobs of the same type at once.
 - **One scheduler.** A transaction advisory lock lets one worker enqueue the due schedules; a run missed while no worker was up is enqueued once.
 
+## 10. Identity: accounts, sessions and tokens (§8, Table 18; B1b step 1)
+
+| Table | What it is | Rules |
+|---|---|---|
+| `identity.users` | A member account: e-mail, name, password hash, status, failed attempts, lock, verified e-mail, locale. Its id is its principal | E-mail stored lower case and unique (a check, instead of the `citext` extension: no object owned by another role); only Argon2id hashes; an active account has a password; no workspace or role column (TEN-02) |
+| `identity.sessions` | One per signed-in browser, any realm: activity, idle and absolute expiry, the hash of its XSRF token, revocation with its reason, IP, user agent, country | Idle expiry never after the absolute one; a revocation always states its reason |
+| `identity.refresh_tokens` | The rotating refresh tokens of a session, stored as SHA-256, with the token that replaced each | A replaced token is revoked; using it again revokes the session (step 2) |
+| `identity.sign_in_tokens` | Single-use tokens: invitation, verification, reset, e-mail change, second-factor reset, portal link, staff invitation | Stored as SHA-256; at most 7 days; names an e-mail or a principal |
+
+The member realm (`nx_app`) reads, adds and updates these rows, because sign-in happens before any workspace is known; it never deletes an account. The console and portal roles have no right on them yet. The privilege suite holds the exact rights.
+

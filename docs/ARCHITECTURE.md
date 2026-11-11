@@ -68,6 +68,17 @@ The rules are written once, in the web repository (`src/lib/workforce`, `src/lib
 | SQL rule | `src/architecture/sql-rules.ts` | Fails on a `query(…)` whose SQL is a template literal with `${…}` or a string joined with `+`; the one reviewed exception (`SET LOCAL ROLE` from the closed role list) is listed with its reason | SCR-02 |
 | CI security jobs | `.github/workflows/ci.yml`, `.github/dependabot.yml`, `.gitleaks.toml` | Every action pinned to a commit; a secret scan (gitleaks, release checked by SHA-256) on every pull request; weekly grouped dependency updates; the dependency audit fails on a high finding | SCR-06, SCR-10 |
 
+### 3.1b First module: `modules/identity` (B1b step 1)
+
+| Layer | Files | What it holds |
+|---|---|---|
+| Domain | `password-policy.ts`, `lockout.ts`, `session-limits.ts`, `sign-in-tokens.ts` | The 12-character rule with the leak check (IAM-03), the lock after 5 failures for 15 minutes (IAM-04), the limits of Table 6 (a workspace can only shorten them), token lifetimes per purpose (IAM-10). Pure functions, no I/O |
+| Ports | `ports/index.ts` | `PasswordHasher`, `LeakedPasswordList`, `SecretTokens` |
+| Infrastructure | `argon2-hasher.ts`, `breached-list.ts`, `secret-tokens.ts` | Argon2id at 19 MiB and 2 iterations (`@node-rs/argon2`, prebuilt, no install script); the list of 46,146 leaked passwords of 12+ characters (`apps/server/data`, source in its README); 256-bit random tokens stored as SHA-256 |
+| Application | `passwords.ts`, `index.ts` | `passwordService`: choose (rule, then hash) and check (verify; rehash when the stored hash is weaker; a decoy verification for accounts without a password, so timing does not reveal them). `index.ts` is the module's public interface |
+
+The import rules of §3.3 apply: the domain imports nothing, the application only its domain and ports.
+
 ### 3.2 Target shape (cahier des charges §5)
 
 A **modular monolith**: one deployable server, one PostgreSQL database, no microservices, broker or cache unless a measured need appears.

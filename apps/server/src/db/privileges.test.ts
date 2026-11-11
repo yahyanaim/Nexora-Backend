@@ -18,6 +18,10 @@ const TABLES: Record<string, Record<string, string>> = {
   "audit.identity_events": { nx_app: "INSERT", nx_platform: "INSERT", nx_portal: "INSERT" },
   "audit.seals": {},
   "audit.workspace_events": { nx_app: "SELECT INSERT", nx_dataops: "SELECT" },
+  "identity.refresh_tokens": { nx_app: "SELECT INSERT UPDATE" },
+  "identity.sessions": { nx_app: "SELECT INSERT UPDATE" },
+  "identity.sign_in_tokens": { nx_app: "SELECT INSERT UPDATE" },
+  "identity.users": { nx_app: "SELECT INSERT UPDATE" },
   "identity.principals": {
     nx_app: "SELECT INSERT", nx_dataops: "SELECT", nx_jobs: "SELECT INSERT", nx_platform: "SELECT INSERT",
     nx_portal: "SELECT INSERT", nx_readonly: "SELECT", nx_support: "SELECT",

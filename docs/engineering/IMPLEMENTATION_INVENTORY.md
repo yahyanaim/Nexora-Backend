@@ -1,6 +1,6 @@
 # Nexora: implementation inventory
 
-_The real state of every part of Nexora, from the code, not from the plan. Updated with each phase. Audit of 5 November 2026: Nexora-Saas `fdca5e7`, Nexora-Backend `9d47c35` plus PR #5. Updated 10 November 2026 after Phase 1 steps 1 to 6 (B1a complete)._
+_The real state of every part of Nexora, from the code, not from the plan. Updated with each phase. Audit of 5 November 2026: Nexora-Saas `fdca5e7`, Nexora-Backend `9d47c35` plus PR #5. Updated 11 November 2026: B1a complete; B1b step 1._
 
 **Legend:**
 - ✅ built and tested
@@ -43,7 +43,7 @@ The front-end column counts the API modules in `Nexora-Saas/src/lib/api` (56 in 
 
 | Module | Front end | Back end: tables | Back end: endpoints | Cahier phase |
 |---|---|---|---|---|
-| identity (sign-in, sessions, 2FA, passcode, devices) | 🧪 `auth-apis`, `profile-api`, `me-api` | ⬜ only `identity.principals` | ⬜ | B1b |
+| identity (sign-in, sessions, 2FA, passcode, devices) | 🧪 `auth-apis`, `profile-api`, `me-api` | 🟡 `principals`, `users`, `sessions`, `refresh_tokens`, `sign_in_tokens` (B1b step 1); module `src/modules/identity` with password rule, Argon2id, lockout, session limits, tokens | ⬜ (step 2) | B1b |
 | workspace (settings, memberships, roles, plans and seats) | 🧪 `settings-api`, `access-api`, `workspace-subscription-api`, `tenant-modules` | 🟡 `tenant.workspaces` | ⬜ | B1b, B1c |
 | people (employees, rates, documents, org chart, reviews, leave balances) | 🧪 `employees-api`, `documents-api`, `reviews-api`, `leave-api` | 🟡 `tenant.departments` | ⬜ | B1c |
 | relations (clients, contacts, leads, deals, CRM import, files, notes, satisfaction) | 🧪 `clients-api`, `crm-api`, `leads-api`, `deals-api`, `crm-import-api`, `client-files-api`, `client-requests-api`, `satisfaction-api` | ⬜ | ⬜ | B1c |
@@ -84,7 +84,7 @@ The front-end column counts the API modules in `Nexora-Saas/src/lib/api` (56 in 
 | Front-end unit and component tests | 143 files, 870 tests | Local and CI |
 | Front-end end to end (Playwright, mock API) | CI job "End-to-end" | CI |
 | Front-end accessibility (axe, console and company pages) | CI job | CI |
-| Back-end server tests | 115 after step 6 (99 after step 5, 88 after step 4, 72 after step 1) (database suites on real PostgreSQL 16) | Local with `TEST_DATABASE_ADMIN_URL`; always in CI |
+| Back-end server tests | 142 after B1b step 1, 115 after step 6 (99 after step 5, 88 after step 4, 72 after step 1) (database suites on real PostgreSQL 16) | Local with `TEST_DATABASE_ADMIN_URL`; always in CI |
 | Back-end script tests (`sync-core.mjs`: pin, drift, refusals) | 5 (step 3) | Local and CI (`npm test`) |
 | Back-end core rule tests | 136 | Local and CI |
 | Contract tests front end ↔ back end | 🟡 error body (same example on both sides); session cookies and `err_csrf` with B1b; module shapes come with each module | Local and CI |
