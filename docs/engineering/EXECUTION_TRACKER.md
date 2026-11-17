@@ -16,7 +16,7 @@ _The engineering roadmap (phases 0–8) laid onto the delivery plan of the cahie
 | 0 Audit and baseline | — | This audit, inventory, decisions, tracker | 1 day | ✅ approved, merged (#5, Nexora-Saas #140) |
 | 1 Contract and foundation hardening | B1a step 4 | Error body (E1), session contract (E2), pinned rules (ARC-12), import-rule test, contract tests (ARC-13) | 1 week | ✅ steps 1–6 merged (#7–#12, Nexora-Saas #142–#147) |
 | 2 Database, transactions, audit, workers | B1a steps 2–4 | Steps 2 and 3 (#3, #5); heartbeat and seals (#11); exit gate (#12) | — | ✅ B1a gate passed |
-| 3 Identity, authentication, authorization | B1b | Sessions, sign-in, CSRF, memberships, roles, permission engine, step-up, devices | 2–3 weeks | 🔄 step 1 ✅ (#19), step 2 ✅ (#21), step 3 ✅ (#22), step 4 ✅ (#23) |
+| 3 Identity, authentication, authorization | B1b | Sessions, sign-in, CSRF, memberships, roles, permission engine, step-up, devices | 2–3 weeks | 🔄 step 1 ✅ (#19), step 2 ✅ (#21), step 3 ✅ (#22), step 4 ✅ (#23), step 4b 🔄 |
 | 4 First vertical slice | B1c (part) | Client → project → member → time → submit → approve, end to end | 2–3 weeks | ⬜ |
 | 5 Core ERP modules | B1c (rest), B1e (reporting) | Settings, people, CRM features, work features, leave, operational reports | 5–6 weeks | ⬜ |
 | 6 Financial domain | B1d | Money adapter and property tests, idempotency, quotes, invoices, numbering, payments, VAT, journal | 4–5 weeks | ⬜ |
@@ -80,6 +80,7 @@ Done in five pull requests, in this order, each with its tests; the last one pas
 | 2 | Member sign-in, sign-out, refresh with rotation and reuse detection, `me`; realm cookies; CSRF double submit and `Origin`; rate limits; identity audit events; access log with redaction; G-5 to G-7 (rest of 3.1, 3.2, 3.6, 3.7) | ✅ merged (#21; web #157) |
 | 3 | Workspaces and memberships, workspace in the path checked on every request, switch, owner rules; roles and the permission engine; denials audited (3.3, 3.4) | ✅ merged (#22; web #159; 3a: Nexora-Saas #158) |
 | 4 | Second factor (TOTP, recovery codes), step-up for sensitive actions, sessions list and revoke, passcode lock (3.5) | ✅ merged (#23; web #160) |
+| 4b | Invitations (invite with a role, check and accept a single-use link, choose a first password) and password reset (same answer for any e-mail, single-use link, every session ended); e-mails written sealed to the outbox (rest of 3.1: IAM-10, IAM-15) | 🔄 open, waits for the owner |
 | 5 | Web application switched: `client.ts`, `proxy.ts`, `X-XSRF-TOKEN` (F11), mock API; sign-in end to end from the existing screens; isolation and permission suites (B1b gate) | ⬜ |
 
 
@@ -93,6 +94,18 @@ Done in five pull requests, in this order, each with its tests; the last one pas
 | 3.6 | Access log with workspace and principal; personal data redacted from logs (G-6) | M-5, QAL-07 |
 | 3.7 | Security plan G-5 and G-7: TLS required for the production database; proxy hop count from configuration | `SECURITY_PLAN.md`; SCR-01 |
 | Gate | Isolation and permission suites green; sign-in works end to end from the existing screens | Cahier B1b |
+
+**Checked against the owner's roadmap of 5 November (Phase 3 tasks 3.1 to 3.4).** What B1b does not cover, and where it goes, so nothing is dropped silently:
+
+| Roadmap item | Requirement | Where it is done | Why there |
+|---|---|---|---|
+| 3.3 "Apply record-level authorization where required" | AUZ-03, AUZ-04, cahier §3.4 (own records, team, no self-approval) | **B1c** (Phase 4, first vertical slice), with the records it protects | The rules are about time entries, expenses, leave and projects; they are written and tested with those tables |
+| 3.3 "Distinguish platform, workspace and client-portal identities" | IAM-12 (portal sign-in), staff sign-in (SEC-03) | Realms exist in the data model and cookies since B1b step 1; **portal sign-in in B1e**, **console sign-in in B1f** | Each realm comes with the module that uses it |
+| 3.4 Session revocation pushed to the browser | IAM-19 | With the realtime channel (B1e) | Needs the socket; until then a revoked session stops at its next request (IAM-08) |
+| 3.4 Workspace setting asking every member for a second factor | IAM-05 (last clause) | **B1c**, with company settings | Owners, administrators and accountants already must use it |
+| 3.1 New device or country notice | IAM-13 (S) | With notifications (B1e) | Needs the e-mail and in-app notices |
+| Sending the invitation and reset e-mails | §8.1 | The worker sends the outbox rows from **B1e**; B1b writes them | The e-mail service is B1e |
+| Access states (read-only, suspended) on every request | TEN-09 | **B2**, with subscriptions | The state comes from the platform's subscription |
 
 ### Phase 4: First vertical slice ⬜
 

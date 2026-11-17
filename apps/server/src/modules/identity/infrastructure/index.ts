@@ -1,4 +1,5 @@
 import type pg from "pg"
+import { accountsService, type AccountsService } from "../application/accounts"
 import { authService, type AuthService } from "../application/auth"
 import { passwordService, type PasswordService } from "../application/passwords"
 import { secondFactorService, type SecondFactorService } from "../application/second-factor"
@@ -18,6 +19,7 @@ export function createIdentity(deps: { pool: pg.Pool; sessionSecret: string; enc
   auth: AuthService
   passwords: PasswordService
   secondFactor: SecondFactorService
+  accounts: AccountsService
 } {
   const passwords = passwordService({ hasher: argon2Hasher, leaked: leakedPasswords })
   const shared = {
@@ -30,5 +32,7 @@ export function createIdentity(deps: { pool: pg.Pool; sessionSecret: string; enc
     clock: { now: deps.now ?? (() => new Date()) },
   }
   const auth = authService({ ...shared, passwords, access: hmacAccessTokens(deps.sessionSecret) })
-  return { auth, passwords, secondFactor: secondFactorService(shared) }
+  // Links in outbox e-mails are sealed with their own key (purpose "mail").
+  const accounts = accountsService({ tx: shared.tx, passwords, limiter: shared.limiter, tokens: secretTokens, mailBox: aesGcmBox(deps.encryptionKey, "mail"), clock: shared.clock })
+  return { auth, passwords, secondFactor: secondFactorService(shared), accounts }
 }

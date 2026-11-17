@@ -1,6 +1,15 @@
 import { type Request, type RequestHandler, Router } from "express"
 import { z } from "zod"
-import { type AuthService, type ClientInfo, SecondFactorError, type SecondFactorRefusal, type SecondFactorService } from "../modules/identity/application/index"
+import {
+  AccountError,
+  type AccountRefusal,
+  type AccountsService,
+  type AuthService,
+  type ClientInfo,
+  SecondFactorError,
+  type SecondFactorRefusal,
+  type SecondFactorService,
+} from "../modules/identity/application/index"
 import { clearMemberSessionCookies, type CookieSettings, MEMBER_REFRESH_COOKIE, readCookie, setMemberSessionCookies } from "./cookies"
 import { AppError, notFound } from "./errors"
 import { requireOrigin, requireSession, requireXsrf, sessionEnded } from "./guards"
@@ -35,6 +44,20 @@ const REFUSAL: Record<SecondFactorRefusal, () => AppError> = {
   rate_limited: () => new AppError(429, "err_tooManyRequests"),
 }
 
+const ACCOUNT_REFUSAL: Record<AccountRefusal, (values: Record<string, number>) => AppError> = {
+  invite_used: () => new AppError(400, "err_inviteGone"),
+  invite_expired: () => new AppError(400, "err_inviteExpired"),
+  reset_invalid: () => new AppError(400, "err_resetLinkInvalid"),
+  password_too_short: (v) => new AppError(400, "err_passwordTooShort", v),
+  password_too_long: () => new AppError(400, "err_badRequest"),
+  password_breached: () => new AppError(400, "err_passwordBreached"),
+  rate_limited: () => new AppError(429, "err_tooManyRequests"),
+}
+const tokenBody = z.strictObject({ token: z.string().min(20).max(100) })
+const acceptBody = z.strictObject({ token: z.string().min(20).max(100), password: z.string().min(1).max(1024).optional() })
+const resetRequestBody = z.strictObject({ email: z.string().min(3).max(254) })
+const resetBody = z.strictObject({ resetToken: z.string().min(20).max(100), password: z.string().min(1).max(1024) })
+
 function parse<T>(schema: z.ZodType<T>, body: unknown): T {
   const result = schema.safeParse(body)
   if (!result.success) throw new AppError(400, "err_badRequest")
@@ -48,13 +71,16 @@ const handle =
     try {
       await fn(req, res)
     } catch (error) {
-      next(error instanceof SecondFactorError ? REFUSAL[error.code]() : error)
+      next(error instanceof SecondFactorError ? REFUSAL[error.code]() : error instanceof AccountError ? ACCOUNT_REFUSAL[error.code](error.values) : error)
     }
   }
 
 export function memberAuthRoutes(deps: {
   auth: AuthService
   secondFactor?: SecondFactorService
+  accounts?: AccountsService
+  /** Activates the invited membership once its link is used (workspace module). */
+  joinWorkspace?: (workspaceId: string, membershipId: string, userId: string) => Promise<boolean>
   /** Whether the person must keep a second factor (an owner, administrator or accountant somewhere; IAM-05). */
   secondFactorRequired?: (principalId: string) => Promise<boolean>
   appOrigin: string
@@ -254,6 +280,60 @@ export function memberAuthRoutes(deps: {
       ...signedIn,
       handle(async (req, res) => {
         await factor.removePasscode(req.session!, client(req))
+        res.status(204).end()
+      }),
+    )
+  }
+
+  // ---- Invitations and password reset (B1b step 4b; IAM-10, IAM-15) ----
+
+  const accounts = deps.accounts
+  if (accounts) {
+    router.post(
+      "/app/v1/auth/invite-check",
+      origin,
+      handle(async (req, res) => {
+        const { token } = parse(tokenBody, req.body)
+        const found = await accounts.checkInvitation(token)
+        res.json({ email: found.email, workspaceId: found.workspaceId, needsPassword: found.needsPassword })
+      }),
+    )
+    router.post(
+      "/app/v1/auth/invite-accept",
+      origin,
+      handle(async (req, res) => {
+        const body = parse(acceptBody, req.body)
+        const accepted = await accounts.acceptInvitation(body.token, body.password, client(req))
+        await deps.joinWorkspace?.(accepted.workspaceId, accepted.membershipId, accepted.userId)
+        res.json({ workspaceId: accepted.workspaceId })
+      }),
+    )
+    router.post(
+      "/app/v1/auth/password-reset-request",
+      origin,
+      handle(async (req, res) => {
+        const body = resetRequestBody.safeParse(req.body)
+        // A malformed address gets the same answer as any other: nothing tells whether an account exists.
+        if (body.success) await accounts.requestPasswordReset(body.data.email, client(req))
+        res.status(204).end()
+      }),
+    )
+    router.post(
+      "/app/v1/auth/password-reset-verify",
+      origin,
+      handle(async (req, res) => {
+        const { token } = parse(tokenBody, req.body)
+        await accounts.checkPasswordReset(token)
+        res.json({ resetToken: token })
+      }),
+    )
+    router.post(
+      "/app/v1/auth/password-reset",
+      origin,
+      handle(async (req, res) => {
+        const body = parse(resetBody, req.body)
+        await accounts.resetPassword(body.resetToken, body.password, client(req))
+        clearMemberSessionCookies(res, cookies)
         res.status(204).end()
       }),
     )

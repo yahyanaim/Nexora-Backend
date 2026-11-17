@@ -123,6 +123,20 @@ function store(c: pg.PoolClient, workspaceId: string): WorkspaceStore {
       await setPermissions(id, change.permissions)
       return true
     },
+    async insertInvitedMembership(m) {
+      const r = await c.query(
+        "INSERT INTO tenant.memberships (id, workspace_id, user_id, role_id, status) VALUES ($1, $2, $3, $4, 'invited') ON CONFLICT (workspace_id, user_id) DO NOTHING",
+        [m.id, workspaceId, m.userId, m.roleId],
+      )
+      return r.rowCount === 1
+    },
+    async activateInvitedMembership(id, userId, at) {
+      const r = await c.query(
+        "UPDATE tenant.memberships SET status = 'active', activated_at = $4 WHERE workspace_id = $1 AND id = $2 AND user_id = $3 AND status = 'invited'",
+        [workspaceId, id, userId, at],
+      )
+      return r.rowCount === 1
+    },
     async deleteRole(id) {
       await c.query("DELETE FROM tenant.roles WHERE workspace_id = $1 AND id = $2", [workspaceId, id])
     },

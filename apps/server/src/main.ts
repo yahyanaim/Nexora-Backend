@@ -29,7 +29,7 @@ function main() {
   const identity = pool ? createIdentity({ pool, sessionSecret, encryptionKey }) : undefined
   const auth = identity?.auth
   const workspaces = pool ? createWorkspaces({ pool }) : undefined
-  const server = createApp({ config, logger, readiness, auth, secondFactor: identity?.secondFactor, workspaces }).listen(config.PORT, () => logger.info({ port: config.PORT }, "web process listening"))
+  const server = createApp({ config, logger, readiness, auth, secondFactor: identity?.secondFactor, accounts: identity?.accounts, workspaces }).listen(config.PORT, () => logger.info({ port: config.PORT }, "web process listening"))
 
   const stop = (signal: string) => {
     logger.info({ signal }, "stopping: no new requests, finishing current ones")

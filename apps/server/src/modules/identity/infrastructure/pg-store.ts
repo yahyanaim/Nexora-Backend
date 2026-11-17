@@ -45,6 +45,17 @@ function toSession(r: Row): SessionRecord {
   }
 }
 
+function toToken(r: Row) {
+  return {
+    id: r.id as string,
+    principalId: (r.principal_id as string | null) ?? null,
+    email: (r.email as string | null) ?? null,
+    expiresAt: date(r.expires_at)!,
+    usedAt: date(r.used_at),
+    context: (r.context as Record<string, unknown>) ?? {},
+  }
+}
+
 const USER_COLUMNS = "id, email, name, locale, status, password_hash, failed_attempts, locked_until"
 
 function store(c: pg.PoolClient): IdentityStore {
@@ -205,6 +216,44 @@ function store(c: pg.PoolClient): IdentityStore {
     },
     async setPasscodeFailures(userId, failedAttempts) {
       await c.query("UPDATE identity.passcodes SET failed_attempts = $2 WHERE user_id = $1", [userId, failedAttempts])
+    },
+    async createInvitedUser(u) {
+      await c.query("INSERT INTO identity.principals (id, kind, reference, display_name) VALUES ($1, 'member', $2, $3)", [u.id, `user:${u.id}`, u.name.slice(0, 200)])
+      await c.query("INSERT INTO identity.users (id, email, name, status) VALUES ($1, $2, $3, 'invited')", [u.id, u.email, u.name])
+    },
+    async issueToken(t) {
+      await c.query(
+        "INSERT INTO identity.sign_in_tokens (id, purpose, email, principal_id, token_hash, created_at, expires_at, context) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)",
+        [t.id, t.purpose, t.email, t.principalId, t.tokenHash, t.createdAt, t.expiresAt, JSON.stringify(t.context)],
+      )
+    },
+    async tokenByHash(tokenHash, purpose) {
+      const r = await one("SELECT id, principal_id, email, expires_at, used_at, context FROM identity.sign_in_tokens WHERE token_hash = $1 AND purpose = $2", [tokenHash, purpose])
+      return r ? toToken(r) : null
+    },
+    async consumeToken(tokenHash, purpose, now) {
+      const r = await one(
+        "UPDATE identity.sign_in_tokens SET used_at = $3 WHERE token_hash = $1 AND purpose = $2 AND used_at IS NULL AND expires_at > $3 RETURNING id, principal_id, email, expires_at, used_at, context",
+        [tokenHash, purpose, now],
+      )
+      return r ? toToken(r) : null
+    },
+    async expireTokensOf(principalId, purpose, now) {
+      await c.query("UPDATE identity.sign_in_tokens SET used_at = $3 WHERE principal_id = $1 AND purpose = $2 AND used_at IS NULL", [principalId, purpose, now])
+    },
+    async activateUser(userId, passwordHash) {
+      await c.query(
+        "UPDATE identity.users SET status = 'active', password_hash = coalesce($2, password_hash), email_verified_at = coalesce(email_verified_at, now()), updated_at = now() WHERE id = $1",
+        [userId, passwordHash],
+      )
+    },
+    async enqueueMail(m) {
+      await c.query("INSERT INTO ops.outbox (id, workspace_id, aggregate_type, aggregate_id, event_type, payload) VALUES ($1, NULL, 'identity', $2, $3, $4)", [
+        uuidv7(),
+        m.aggregateId,
+        m.eventType,
+        JSON.stringify(m.payload),
+      ])
     },
     async sessionByRefreshHash(tokenHash) {
       const r = await one(

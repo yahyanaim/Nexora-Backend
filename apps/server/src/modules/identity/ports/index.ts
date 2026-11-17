@@ -1,5 +1,6 @@
 import type { LockState } from "../domain/lockout"
 import type { Realm } from "../domain/session-limits"
+import type { TokenPurpose } from "../domain/sign-in-tokens"
 
 /**
  * What the identity application needs from the outside world. The
@@ -93,6 +94,22 @@ export interface SessionListItem {
   userAgent: string | null
 }
 
+export interface TokenRecord {
+  id: string
+  principalId: string | null
+  email: string | null
+  expiresAt: Date
+  usedAt: Date | null
+  context: Record<string, unknown>
+}
+
+/** An e-mail to send after commit (outbox, §15.1); the worker sends it from B1e. */
+export interface IdentityMail {
+  eventType: string
+  aggregateId: string
+  payload: Record<string, unknown>
+}
+
 export interface PasscodeRecord {
   hash: string
   failedAttempts: number
@@ -173,6 +190,19 @@ export interface IdentityStore {
   setPasscodeFailures(userId: string, failedAttempts: number): Promise<void>
   /** The session a refresh token belongs to, without using the token. */
   sessionByRefreshHash(tokenHash: string): Promise<SessionRecord | null>
+
+  // ---- Invitations and password reset (B1b step 4b) ----
+  /** A new member account waiting for its invitation to be accepted: no password yet. */
+  createInvitedUser(user: { id: string; email: string; name: string }): Promise<void>
+  issueToken(token: { id: string; purpose: TokenPurpose; email: string | null; principalId: string | null; tokenHash: string; createdAt: Date; expiresAt: Date; context: Record<string, unknown> }): Promise<void>
+  tokenByHash(tokenHash: string, purpose: TokenPurpose): Promise<TokenRecord | null>
+  /** Uses a token once: answers it only when it was unused and not expired; two requests together get it once (IAM-10). */
+  consumeToken(tokenHash: string, purpose: TokenPurpose, now: Date): Promise<TokenRecord | null>
+  /** Ends the person's other unused links of one purpose (a new password makes old reset links useless). */
+  expireTokensOf(principalId: string, purpose: TokenPurpose, now: Date): Promise<void>
+  /** Activates an invited account, with its first password when it has none. */
+  activateUser(userId: string, passwordHash: string | null): Promise<void>
+  enqueueMail(mail: IdentityMail): Promise<void>
 }
 
 /** Runs work in one database transaction of the member realm. */
