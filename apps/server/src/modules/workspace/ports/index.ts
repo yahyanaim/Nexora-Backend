@@ -76,6 +76,10 @@ export interface WorkspaceStore {
   createRole(role: { id: string; name: string; permissions: string[] }): Promise<boolean>
   updateRole(id: string, change: { name: string; permissions: string[] }): Promise<boolean>
   deleteRole(id: string): Promise<void>
+  /** A new invited membership; false when the person already has one in this company. */
+  insertInvitedMembership(m: { id: string; userId: string; roleId: string }): Promise<boolean>
+  /** Turns the person's invited membership active; false when it is not (or no longer) invited. */
+  activateInvitedMembership(id: string, userId: string, at: Date): Promise<boolean>
   audit(event: WorkspaceEvent): Promise<void>
 }
 

@@ -20,6 +20,7 @@ export {
   SIGN_IN_FAILURES_PER_EMAIL,
   SIGN_IN_WINDOW_SECONDS,
 } from "./auth"
+export { accountsService, AccountError, type AccountRefusal, type AccountsService } from "./accounts"
 export { secondFactorService, SecondFactorError, type SecondFactorRefusal, type SecondFactorService } from "./second-factor"
 export { CHALLENGE_ATTEMPTS, CHALLENGE_MINUTES, isStepUpFresh, PASSCODE_ATTEMPTS, RECOVERY_CODE_COUNT, STEP_UP_MINUTES } from "../domain/second-factor"
 export { PASSWORD_MIN_LENGTH, PASSWORD_MAX_LENGTH, type PasswordProblem } from "../domain/password-policy"

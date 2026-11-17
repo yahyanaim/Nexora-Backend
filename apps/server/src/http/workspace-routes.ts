@@ -1,6 +1,6 @@
 import { type Request, type RequestHandler, Router } from "express"
 import { z } from "zod"
-import { type AuthService, isStepUpFresh, type SessionContext } from "../modules/identity/application/index"
+import { type AccountsService, type AuthService, isStepUpFresh, type SessionContext } from "../modules/identity/application/index"
 import { type RefusalCode, type RequestInfo, type SessionSecurity, type TenantContext, type WorkspaceCommand, WorkspaceRefusal, type WorkspaceService } from "../modules/workspace/application/index"
 import { AppError, notFound } from "./errors"
 import { requireOrigin, requireSession, requireXsrf } from "./guards"
@@ -49,6 +49,11 @@ const memberBody = z.strictObject({
   isOwner: z.boolean().optional(),
   status: z.enum(["active", "disabled"]).optional(),
 })
+const inviteBody = z.strictObject({
+  email: z.string().trim().min(3).max(254).regex(/^[^@\s]+@[^@\s]+$/),
+  name: z.string().trim().min(1).max(200),
+  roleId: z.string().regex(UUID),
+})
 const roleName = z.string().trim().min(1).max(60)
 const permissionList = z.array(z.string().max(40)).max(100)
 const newRoleBody = z.strictObject({ name: roleName, permissions: permissionList })
@@ -86,6 +91,7 @@ type Method = "get" | "post" | "patch" | "delete"
 export const WORKSPACE_ROUTES: ReadonlyArray<{ method: Method; path: string; command: WorkspaceCommand }> = [
   { method: "get", path: "/context", command: "context" },
   { method: "get", path: "/members", command: "listMembers" },
+  { method: "post", path: "/members", command: "inviteMember" },
   { method: "patch", path: "/members/:mid", command: "changeMember" },
   { method: "delete", path: "/members/:mid/sessions", command: "endMemberSessions" },
   { method: "get", path: "/roles", command: "listRoles" },
@@ -94,7 +100,7 @@ export const WORKSPACE_ROUTES: ReadonlyArray<{ method: Method; path: string; com
   { method: "delete", path: "/roles/:rid", command: "deleteRole" },
 ]
 
-export function workspaceRoutes(deps: { auth: AuthService; workspaces: WorkspaceService; appOrigin: string }) {
+export function workspaceRoutes(deps: { auth: AuthService; accounts?: AccountsService; workspaces: WorkspaceService; appOrigin: string }) {
   const { auth, workspaces } = deps
   const router = Router()
   const origin = requireOrigin(deps.appOrigin)
@@ -143,6 +149,21 @@ export function workspaceRoutes(deps: { auth: AuthService; workspaces: Workspace
     },
     updateRole: async (req, res) => {
       res.json({ role: await workspaces.updateRole(req.tenant!, String(req.params.rid), parse(roleBody, req.body), info(req)) })
+    },
+    inviteMember: async (req, res) => {
+      const accounts = deps.accounts
+      if (!accounts) throw notFound()
+      const body = parse(inviteBody, req.body)
+      const ctx = req.tenant!
+      let userId = ""
+      const member = await workspaces.inviteMember(
+        ctx,
+        { roleId: body.roleId },
+        async () => (userId = (await accounts.accountForInvitation({ email: body.email, name: body.name })).userId),
+        info(req),
+      )
+      await accounts.sendInvitation({ userId, email: member.email, workspaceId: ctx.workspaceId, membershipId: member.id, invitedBy: ctx.principalId }, { ip: req.ip ?? null, userAgent: req.get("user-agent") ?? null, requestId: req.id })
+      res.status(201).json({ member })
     },
     endMemberSessions: async (req, res) => {
       const userId = await workspaces.endMemberSessions(req.tenant!, String(req.params.mid), info(req))

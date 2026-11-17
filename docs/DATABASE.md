@@ -174,6 +174,8 @@ The member realm (`nx_app`) reads, adds and updates these rows, because sign-in 
 
 `nx_app` reads and writes these (sign-in happens before any workspace is known); the privilege suite holds the exact rights.
 
+**Invitations and reset (B1b step 4b, migration `0013`).** The links are `identity.sign_in_tokens` rows (`invite`: 7 days, with the workspace and membership in `context`; `reset`: 24 hours), used once by `UPDATE … WHERE used_at IS NULL AND expires_at > now() RETURNING`. Their e-mails are `ops.outbox` rows: the policy `identity_events` lets `nx_app` add rows **without a workspace** only for `aggregate_type = 'identity'` and an `identity.*` event, so the e-mail is committed with its link even before a workspace is known.
+
 ## 11. Memberships, roles and permissions (§3.3, §7.2, §10; B1b step 3, migration `0011`)
 
 | Table or function | What it is | Rules |

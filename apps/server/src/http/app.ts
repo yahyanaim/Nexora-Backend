@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto"
 import express, { type RequestHandler } from "express"
 import type { Logger } from "pino"
 import type { Config } from "../config/config"
-import type { AuthService, SecondFactorService } from "../modules/identity/application/index"
+import type { AccountsService, AuthService, SecondFactorService } from "../modules/identity/application/index"
 import type { WorkspaceService } from "../modules/workspace/application/index"
 import { accessLog } from "./access-log"
 import { memberAuthRoutes } from "./auth-routes"
@@ -25,12 +25,14 @@ export interface AppDeps {
   auth?: AuthService
   /** Second factor, step-up and passcode (B1b step 4); mounted with auth. */
   secondFactor?: SecondFactorService
+  /** Invitations and password reset (B1b step 4b); mounted with auth. */
+  accounts?: AccountsService
   /** Workspaces, members and roles (B1b step 3); mounted with auth. */
   workspaces?: WorkspaceService
 }
 
 /** Builds the HTTP application. Steps 1 of the request chain (§5.5): id, size limit, headers. */
-export function createApp({ config, logger, readiness = [], auth, secondFactor, workspaces }: AppDeps) {
+export function createApp({ config, logger, readiness = [], auth, secondFactor, accounts, workspaces }: AppDeps) {
   const app = express()
   app.disable("x-powered-by")
   // How many proxies stand in front (security plan G-7): the client address of logs and rate limits depends on it.
@@ -71,8 +73,9 @@ export function createApp({ config, logger, readiness = [], auth, secondFactor, 
   if (auth) {
     const cookies = { pathPrefix: config.COOKIE_PATH_PREFIX, secure: config.NODE_ENV === "production" || config.APP_ORIGIN.startsWith("https://") }
     const secondFactorRequired = workspaces ? (principalId: string) => workspaces.secondFactorRequired(principalId) : undefined
-    app.use(memberAuthRoutes({ auth, secondFactor, secondFactorRequired, appOrigin: config.APP_ORIGIN, cookies }))
-    if (workspaces) app.use(workspaceRoutes({ auth, workspaces, appOrigin: config.APP_ORIGIN }))
+    const joinWorkspace = workspaces ? (w: string, m: string, u: string) => workspaces.joinWorkspace(w, m, u) : undefined
+    app.use(memberAuthRoutes({ auth, secondFactor, accounts, joinWorkspace, secondFactorRequired, appOrigin: config.APP_ORIGIN, cookies }))
+    if (workspaces) app.use(workspaceRoutes({ auth, accounts, workspaces, appOrigin: config.APP_ORIGIN }))
   }
 
   app.use((_req, _res, next) => next(notFound()))

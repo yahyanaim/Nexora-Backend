@@ -29,10 +29,11 @@ export const PERMISSION_OF = Object.freeze({
   updateRole: "roles:update",
   deleteRole: "roles:delete",
   endMemberSessions: "users:update",
+  inviteMember: "users:create",
 } as const satisfies Record<string, Need>)
 
 export type WorkspaceCommand = keyof typeof PERMISSION_OF
-const WRITES = new Set<WorkspaceCommand>(["changeMember", "createRole", "updateRole", "deleteRole", "endMemberSessions"])
+const WRITES = new Set<WorkspaceCommand>(["changeMember", "createRole", "updateRole", "deleteRole", "endMemberSessions", "inviteMember"])
 
 /** Owners, administrators and accountants must use a second factor (IAM-05, decision D2). */
 export const secondFactorRequiredFor = (m: { isOwner: boolean; roleKey: string | null }) => m.isOwner || m.roleKey === "admin" || m.roleKey === "accountant"
@@ -101,7 +102,8 @@ const iso = (d: Date | null) => (d ? d.toISOString() : null)
 const memberView = (m: MemberRecord): MemberView => ({
   id: m.id,
   userId: m.userId,
-  name: m.name,
+  // Until the person accepts, their account's name stays theirs: an invitation shows the address only.
+  name: m.status === "invited" ? m.email : m.name,
   email: m.email,
   role: { id: m.roleId, key: m.roleKey, name: m.roleName },
   isOwner: m.isOwner,
@@ -143,6 +145,14 @@ export interface WorkspaceService {
   deleteRole(ctx: TenantContext, roleId: string, info: RequestInfo): Promise<void>
   /** Checks that the actor may end a member's sessions and records it; answers the member's user id. */
   endMemberSessions(ctx: TenantContext, memberId: string, info: RequestInfo): Promise<string>
+  /**
+   * Invites a person with a role (no escalation). The permission is checked
+   * first; then `accountFor` finds or makes the person's account (identity
+   * module); then the invited membership is written.
+   */
+  inviteMember(ctx: TenantContext, input: { roleId: string }, accountFor: () => Promise<string>, info: RequestInfo): Promise<MemberView>
+  /** The person accepted their invitation: their membership becomes active. */
+  joinWorkspace(workspaceId: string, membershipId: string, userId: string): Promise<boolean>
   /** Creates a company with the four default roles and its owner. */
   provision(input: { id?: string; name: string; slug: string; country: string; currency: string; timeZone: string; locale: string; ownerUserId: string }, actorId: string): Promise<string>
 }
@@ -308,6 +318,32 @@ export function workspaceService(deps: { tx: WorkspaceTransactions; clock: { now
         if (!covers(ctx.permissions, role.permissions) || (member.isOwner && !ctx.isOwner)) throw new WorkspaceRefusal("forbidden")
         await s.audit({ ...info, actorRole: actorRole(ctx), action: "membership.sessions_ended", targetType: "membership", targetId: memberId, targetLabel: member.email })
         return member.userId
+      })
+    },
+
+    async inviteMember(ctx, input, accountFor, info) {
+      await need(ctx, "inviteMember", info)
+      const role = await tx.inWorkspace(ctx.workspaceId, ctx.principalId, (s) => s.roleById(input.roleId))
+      if (!role || role.status !== "active") throw new WorkspaceRefusal("not_found")
+      if (!covers(ctx.permissions, role.permissions)) throw new WorkspaceRefusal("forbidden")
+      const userId = await accountFor()
+      return tx.inWorkspace(ctx.workspaceId, ctx.principalId, async (s) => {
+        const id = uuidv7()
+        if (!(await s.insertInvitedMembership({ id, userId, roleId: role.id }))) throw new WorkspaceRefusal("conflict")
+        const member = (await s.memberById(id))!
+        await s.audit({ ...info, actorRole: actorRole(ctx), action: "membership.invited", targetType: "membership", targetId: id, targetLabel: member.email, after: { roleId: role.id, status: "invited" } })
+        return memberView(member)
+      })
+    },
+
+    async joinWorkspace(workspaceId, membershipId, userId) {
+      return tx.inWorkspace(workspaceId, userId, async (s) => {
+        const joined = await s.activateInvitedMembership(membershipId, userId, clock.now())
+        if (joined) {
+          const m = await s.membershipOf(userId)
+          await s.audit({ ip: null, userAgent: null, requestId: null, sessionId: null, actorRole: m?.roleKey ?? "custom", action: "membership.joined", targetType: "membership", targetId: membershipId })
+        }
+        return joined
       })
     },
 
