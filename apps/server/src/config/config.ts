@@ -20,6 +20,8 @@ const schema = z
     LOG_LEVEL: z.enum(["fatal", "error", "warn", "info", "debug", "trace", "silent"]).default("info"),
     APP_ORIGIN: z.url().default("http://localhost:3000"),
     SESSION_SECRET: z.string().optional(),
+    /** Encrypts stored secrets such as second-factor keys (SCR-07). Never the session secret. */
+    ENCRYPTION_KEY: z.string().optional(),
     /** The web or worker login user (NOINHERIT member of the nx_* group roles). */
     DATABASE_URL: z.string().regex(/^postgres(ql)?:\/\//, "DATABASE_URL must be a postgres:// URL").optional(),
     /** nx_owner, used only by the migration step. */
@@ -34,6 +36,9 @@ const schema = z
     if (env.NODE_ENV !== "production") return
     const check = secret("SESSION_SECRET").safeParse(env.SESSION_SECRET)
     if (!check.success) for (const issue of check.error.issues) ctx.addIssue({ code: "custom", path: ["SESSION_SECRET"], message: issue.message })
+    const key = secret("ENCRYPTION_KEY").safeParse(env.ENCRYPTION_KEY)
+    if (!key.success) for (const issue of key.error.issues) ctx.addIssue({ code: "custom", path: ["ENCRYPTION_KEY"], message: issue.message })
+    if (env.ENCRYPTION_KEY && env.ENCRYPTION_KEY === env.SESSION_SECRET) ctx.addIssue({ code: "custom", path: ["ENCRYPTION_KEY"], message: "ENCRYPTION_KEY must differ from SESSION_SECRET" })
     if (!env.APP_ORIGIN.startsWith("https://")) ctx.addIssue({ code: "custom", path: ["APP_ORIGIN"], message: "APP_ORIGIN must use https in production" })
     if (!env.DATABASE_URL) ctx.addIssue({ code: "custom", path: ["DATABASE_URL"], message: "DATABASE_URL is required in production" })
     // G-5, SCR-01: credentials and data never cross the network in clear, and the server's certificate is checked.

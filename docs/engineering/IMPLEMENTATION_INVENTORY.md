@@ -43,7 +43,7 @@ The front-end column counts the API modules in `Nexora-Saas/src/lib/api` (56 in 
 
 | Module | Front end | Back end: tables | Back end: endpoints | Cahier phase |
 |---|---|---|---|---|
-| identity (sign-in, sessions, 2FA, passcode, devices) | 🧪 `auth-apis`, `profile-api`, `me-api` | 🟡 `principals`, `users`, `sessions`, `refresh_tokens`, `sign_in_tokens` (B1b step 1); module `src/modules/identity` with password rule, Argon2id, lockout, session limits, tokens | 🟡 member sign-in, refresh, sign-out, `me` (B1b step 2); active workspace of the session (step 3) | B1b |
+| identity (sign-in, sessions, 2FA, passcode, devices) | 🧪 `auth-apis`, `profile-api`, `me-api` | 🟡 `principals`, `users`, `sessions`, `refresh_tokens`, `sign_in_tokens` (B1b step 1); module `src/modules/identity` with password rule, Argon2id, lockout, session limits, tokens | 🟡 member sign-in, refresh, sign-out, `me` (B1b step 2); active workspace of the session (step 3); second factor, step-up, sessions list, passcode (step 4) | B1b |
 | workspace (settings, memberships, roles, plans and seats) | 🧪 `settings-api`, `access-api`, `workspace-subscription-api`, `tenant-modules` | 🟡 `tenant.workspaces`, `memberships`, `roles`, `role_permissions`, `identity.permissions`; `provision_workspace`, `my_memberships` (B1b step 3); module `src/modules/workspace` | 🟡 `me/workspaces`, switch, `{ws}/context`, members, roles (B1b step 3); settings and seats later | B1b, B1c |
 | people (employees, rates, documents, org chart, reviews, leave balances) | 🧪 `employees-api`, `documents-api`, `reviews-api`, `leave-api` | 🟡 `tenant.departments` | ⬜ | B1c |
 | relations (clients, contacts, leads, deals, CRM import, files, notes, satisfaction) | 🧪 `clients-api`, `crm-api`, `leads-api`, `deals-api`, `crm-import-api`, `client-files-api`, `client-requests-api`, `satisfaction-api` | ⬜ | ⬜ | B1c |
@@ -84,7 +84,7 @@ The front-end column counts the API modules in `Nexora-Saas/src/lib/api` (56 in 
 | Front-end unit and component tests | 143 files, 870 tests | Local and CI |
 | Front-end end to end (Playwright, mock API) | CI job "End-to-end" | CI |
 | Front-end accessibility (axe, console and company pages) | CI job | CI |
-| Back-end server tests | 183 after B1b step 3, 163 after B1b step 2, 142 after B1b step 1, 115 after step 6 (99 after step 5, 88 after step 4, 72 after step 1) (database suites on real PostgreSQL 16) | Local with `TEST_DATABASE_ADMIN_URL`; always in CI |
+| Back-end server tests | 199 after B1b step 4, 183 after B1b step 3, 163 after B1b step 2, 142 after B1b step 1, 115 after step 6 (99 after step 5, 88 after step 4, 72 after step 1) (database suites on real PostgreSQL 16) | Local with `TEST_DATABASE_ADMIN_URL`; always in CI |
 | Back-end script tests (`sync-core.mjs`: pin, drift, refusals) | 5 (step 3) | Local and CI (`npm test`) |
 | Back-end core rule tests | 136 | Local and CI |
 | Contract tests front end ↔ back end | 🟡 error body (same example on both sides); session cookies and `err_csrf` with B1b; module shapes come with each module | Local and CI |

@@ -11,6 +11,8 @@ export {
   type Need,
   type RefusalCode,
   type RequestInfo,
+  secondFactorRequiredFor,
+  type SessionSecurity,
   type RoleView,
   type TenantContext,
   type WorkspaceCommand,

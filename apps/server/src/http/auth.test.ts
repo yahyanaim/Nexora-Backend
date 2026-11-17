@@ -26,7 +26,7 @@ describe.skipIf(!ADMIN_URL)("member sign-in and sessions (B1b step 2)", () => {
     hash = await argon2Hasher.hash(PASSWORD)
     const config = loadConfig({ APP_ORIGIN: ORIGIN, COOKIE_PATH_PREFIX: "/api" })
     const logger = pino({ level: "info" }, { write: (l: string) => void lines.push(JSON.parse(l)) })
-    app = createApp({ config, logger, auth: createIdentity({ pool: db.web, sessionSecret: "x".repeat(40) }).auth })
+    app = createApp({ config, logger, auth: createIdentity({ pool: db.web, sessionSecret: "x".repeat(40), encryptionKey: "k".repeat(40) }).auth })
   }, 60_000)
   afterAll(async () => db?.drop())
   beforeEach(async () => {

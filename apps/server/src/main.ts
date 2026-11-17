@@ -24,9 +24,12 @@ function main() {
   const readiness = pool ? [databaseReadiness(pool)] : []
   // Production refuses to start without a strong SESSION_SECRET (config); elsewhere a random one per start is enough.
   const sessionSecret = config.SESSION_SECRET ?? randomBytes(32).toString("base64url")
-  const auth = pool ? createIdentity({ pool, sessionSecret }).auth : undefined
+  // Stored secrets need a key that survives restarts in production (config); elsewhere one per start is enough.
+  const encryptionKey = config.ENCRYPTION_KEY ?? randomBytes(32).toString("base64url")
+  const identity = pool ? createIdentity({ pool, sessionSecret, encryptionKey }) : undefined
+  const auth = identity?.auth
   const workspaces = pool ? createWorkspaces({ pool }) : undefined
-  const server = createApp({ config, logger, readiness, auth, workspaces }).listen(config.PORT, () => logger.info({ port: config.PORT }, "web process listening"))
+  const server = createApp({ config, logger, readiness, auth, secondFactor: identity?.secondFactor, workspaces }).listen(config.PORT, () => logger.info({ port: config.PORT }, "web process listening"))
 
   const stop = (signal: string) => {
     logger.info({ signal }, "stopping: no new requests, finishing current ones")

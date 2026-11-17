@@ -1,7 +1,7 @@
 import { type Request, type RequestHandler, Router } from "express"
 import { z } from "zod"
-import type { AuthService } from "../modules/identity/application/index"
-import { type RefusalCode, type RequestInfo, type TenantContext, type WorkspaceCommand, WorkspaceRefusal, type WorkspaceService } from "../modules/workspace/application/index"
+import { type AuthService, isStepUpFresh, type SessionContext } from "../modules/identity/application/index"
+import { type RefusalCode, type RequestInfo, type SessionSecurity, type TenantContext, type WorkspaceCommand, WorkspaceRefusal, type WorkspaceService } from "../modules/workspace/application/index"
 import { AppError, notFound } from "./errors"
 import { requireOrigin, requireSession, requireXsrf } from "./guards"
 
@@ -33,9 +33,13 @@ const REFUSAL: Record<RefusalCode, () => AppError> = {
   name_taken: () => new AppError(409, "err_roleNameTaken"),
   conflict: () => new AppError(409, "err_conflict"),
   bad_input: () => new AppError(400, "err_badRequest"),
+  two_factor_required: () => new AppError(403, "err_twoFactorRequired"),
+  step_up_required: () => new AppError(403, "err_stepUpRequired"),
 }
 
 const asAppError = (error: unknown) => (error instanceof WorkspaceRefusal ? REFUSAL[error.code]() : error)
+
+const security = (s: SessionContext): SessionSecurity => ({ twoFactorEnabled: s.twoFactorEnabled, stepUpFresh: isStepUpFresh(s.secondFactorAt, new Date()) })
 
 const info = (req: Request): RequestInfo => ({ ip: req.ip ?? null, userAgent: req.get("user-agent") ?? null, requestId: req.id, sessionId: req.session?.sessionId ?? null })
 
@@ -62,13 +66,13 @@ export function requireWorkspace(workspaces: WorkspaceService): RequestHandler {
     const wid = req.params.wid
     if (!wid || !UUID.test(wid)) return next(new AppError(403, "err_forbidden"))
     workspaces
-      .resolve(req.session!.principalId, wid.toLowerCase(), info(req))
+      .resolve(req.session!.principalId, wid.toLowerCase(), info(req), security(req.session!))
       .then((ctx) => {
         if (!ctx) return next(new AppError(403, "err_forbidden"))
         req.tenant = ctx
         next()
       })
-      .catch(next)
+      .catch((error) => next(asAppError(error)))
   }
 }
 
@@ -83,6 +87,7 @@ export const WORKSPACE_ROUTES: ReadonlyArray<{ method: Method; path: string; com
   { method: "get", path: "/context", command: "context" },
   { method: "get", path: "/members", command: "listMembers" },
   { method: "patch", path: "/members/:mid", command: "changeMember" },
+  { method: "delete", path: "/members/:mid/sessions", command: "endMemberSessions" },
   { method: "get", path: "/roles", command: "listRoles" },
   { method: "post", path: "/roles", command: "createRole" },
   { method: "patch", path: "/roles/:rid", command: "updateRole" },
@@ -109,12 +114,12 @@ export function workspaceRoutes(deps: { auth: AuthService; workspaces: Workspace
   router.put("/app/v1/auth/workspace", origin, session, requireXsrf(), async (req, res, next) => {
     try {
       const { workspaceId } = parse(switchBody, req.body)
-      const ctx = await workspaces.resolve(req.session!.principalId, workspaceId.toLowerCase(), info(req))
+      const ctx = await workspaces.resolve(req.session!.principalId, workspaceId.toLowerCase(), info(req), security(req.session!))
       if (!ctx) throw new AppError(403, "err_forbidden")
       await auth.setActiveWorkspace(req.session!.sessionId, ctx.workspaceId)
       res.json({ activeWorkspaceId: ctx.workspaceId })
     } catch (error) {
-      next(error)
+      next(asAppError(error))
     }
   })
 
@@ -138,6 +143,10 @@ export function workspaceRoutes(deps: { auth: AuthService; workspaces: Workspace
     },
     updateRole: async (req, res) => {
       res.json({ role: await workspaces.updateRole(req.tenant!, String(req.params.rid), parse(roleBody, req.body), info(req)) })
+    },
+    endMemberSessions: async (req, res) => {
+      const userId = await workspaces.endMemberSessions(req.tenant!, String(req.params.mid), info(req))
+      res.json({ ended: await auth.endAllSessionsOf(userId, req.session!.principalId, { ip: req.ip ?? null, userAgent: req.get("user-agent") ?? null, requestId: req.id }) })
     },
     deleteRole: async (req, res) => {
       await workspaces.deleteRole(req.tenant!, String(req.params.rid), info(req))

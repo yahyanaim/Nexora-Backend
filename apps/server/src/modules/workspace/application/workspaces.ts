@@ -28,10 +28,21 @@ export const PERMISSION_OF = Object.freeze({
   createRole: "roles:create",
   updateRole: "roles:update",
   deleteRole: "roles:delete",
+  endMemberSessions: "users:update",
 } as const satisfies Record<string, Need>)
 
 export type WorkspaceCommand = keyof typeof PERMISSION_OF
-const WRITES = new Set<WorkspaceCommand>(["changeMember", "createRole", "updateRole", "deleteRole"])
+const WRITES = new Set<WorkspaceCommand>(["changeMember", "createRole", "updateRole", "deleteRole", "endMemberSessions"])
+
+/** Owners, administrators and accountants must use a second factor (IAM-05, decision D2). */
+export const secondFactorRequiredFor = (m: { isOwner: boolean; roleKey: string | null }) => m.isOwner || m.roleKey === "admin" || m.roleKey === "accountant"
+
+/** What the session says about the second factor, given by the HTTP layer from the identity module. */
+export interface SessionSecurity {
+  twoFactorEnabled: boolean
+  /** A second factor given less than 5 minutes ago (IAM-06). */
+  stepUpFresh: boolean
+}
 
 /** The resolved tenant context (TEN-03): frozen, built only here. */
 export interface TenantContext {
@@ -42,6 +53,8 @@ export interface TenantContext {
   readonly roleName: string
   readonly isOwner: boolean
   readonly permissions: readonly string[]
+  /** A second factor given less than 5 minutes ago: sensitive actions need it (IAM-06). */
+  readonly stepUpFresh: boolean
 }
 
 export interface RequestInfo {
@@ -51,7 +64,7 @@ export interface RequestInfo {
   sessionId: string | null
 }
 
-export type RefusalCode = "forbidden" | "not_found" | "owner_only" | "owner_needs_admin" | "last_owner" | "default_role" | "role_in_use" | "name_taken" | "conflict" | "bad_input"
+export type RefusalCode = "forbidden" | "not_found" | "owner_only" | "owner_needs_admin" | "last_owner" | "default_role" | "role_in_use" | "name_taken" | "conflict" | "bad_input" | "two_factor_required" | "step_up_required"
 
 /** A refusal of this module, turned into an error code by the HTTP layer. */
 export class WorkspaceRefusal extends Error {
@@ -113,8 +126,14 @@ const SEEN_EVERY_MS = 3_600_000
 
 export interface WorkspaceService {
   listMine(principalId: string): Promise<WorkspaceSummary[]>
-  /** The context of an active member, or null after writing the refusal. */
-  resolve(principalId: string, workspaceId: string, info: RequestInfo): Promise<TenantContext | null>
+  /** True when one of the person's memberships needs a second factor (IAM-05). */
+  secondFactorRequired(principalId: string): Promise<boolean>
+  /**
+   * The context of an active member, or null after writing the refusal. A role
+   * that needs a second factor is refused with `two_factor_required` until the
+   * person has one (IAM-05).
+   */
+  resolve(principalId: string, workspaceId: string, info: RequestInfo, security: SessionSecurity): Promise<TenantContext | null>
   context(ctx: TenantContext): { workspaceId: string; role: { key: string | null; name: string }; isOwner: boolean; permissions: string[] }
   listMembers(ctx: TenantContext, info: RequestInfo): Promise<MemberView[]>
   changeMember(ctx: TenantContext, memberId: string, change: { roleId?: string; isOwner?: boolean; status?: "active" | "disabled" }, info: RequestInfo): Promise<MemberView>
@@ -122,6 +141,8 @@ export interface WorkspaceService {
   createRole(ctx: TenantContext, input: { name: string; permissions: string[] }, info: RequestInfo): Promise<RoleView>
   updateRole(ctx: TenantContext, roleId: string, input: { name?: string; permissions?: string[]; version: number }, info: RequestInfo): Promise<RoleView>
   deleteRole(ctx: TenantContext, roleId: string, info: RequestInfo): Promise<void>
+  /** Checks that the actor may end a member's sessions and records it; answers the member's user id. */
+  endMemberSessions(ctx: TenantContext, memberId: string, info: RequestInfo): Promise<string>
   /** Creates a company with the four default roles and its owner. */
   provision(input: { id?: string; name: string; slug: string; country: string; currency: string; timeZone: string; locale: string; ownerUserId: string }, actorId: string): Promise<string>
 }
@@ -158,7 +179,11 @@ export function workspaceService(deps: { tx: WorkspaceTransactions; clock: { now
   return {
     listMine: (principalId) => tx.myMemberships(principalId),
 
-    async resolve(principalId, workspaceId, info) {
+    async secondFactorRequired(principalId) {
+      return (await tx.myMemberships(principalId)).some(secondFactorRequiredFor)
+    },
+
+    async resolve(principalId, workspaceId, info, security) {
       const found = await tx.inWorkspace(workspaceId, principalId, async (s) => {
         const m = await s.membershipOf(principalId)
         if (!m || m.status !== "active") return null
@@ -171,6 +196,7 @@ export function workspaceService(deps: { tx: WorkspaceTransactions; clock: { now
         await tx.refused(principalId, { workspaceId, ...info })
         return null
       }
+      if (secondFactorRequiredFor(found.m) && !security.twoFactorEnabled) throw new WorkspaceRefusal("two_factor_required")
       return Object.freeze({
         workspaceId,
         membershipId: found.m.id,
@@ -179,6 +205,7 @@ export function workspaceService(deps: { tx: WorkspaceTransactions; clock: { now
         roleName: found.m.roleName,
         isOwner: found.m.isOwner,
         permissions: Object.freeze([...found.permissions].sort()),
+        stepUpFresh: security.stepUpFresh,
       })
     },
 
@@ -215,6 +242,8 @@ export function workspaceService(deps: { tx: WorkspaceTransactions; clock: { now
         if (problem === "OWNER_ONLY") throw new WorkspaceRefusal("owner_only")
         if (problem === "OWNER_NEEDS_ADMIN") throw new WorkspaceRefusal("owner_needs_admin")
         if (problem === "LAST_OWNER") throw new WorkspaceRefusal("last_owner")
+        // Moving ownership is a sensitive action: a fresh second factor first (IAM-06).
+        if (before.isOwner !== after.isOwner && !ctx.stepUpFresh) throw new WorkspaceRefusal("step_up_required")
         await s.updateMember(memberId, { roleId: after.roleId, isOwner: after.isOwner, status: after.status, activatedAt: before.activatedAt })
         await s.audit({ ...info, actorRole: actorRole(ctx), action: "membership.changed", targetType: "membership", targetId: memberId, targetLabel: before.email, before: memberAudit(before), after: memberAudit(after) })
         const updated = await s.memberById(memberId)
@@ -267,6 +296,18 @@ export function workspaceService(deps: { tx: WorkspaceTransactions; clock: { now
         if (role.members > 0) throw new WorkspaceRefusal("role_in_use")
         await s.deleteRole(roleId)
         await s.audit({ ...info, actorRole: actorRole(ctx), action: "role.deleted", targetType: "role", targetId: roleId, targetLabel: role.name, before: { name: role.name, permissions: [...role.permissions].sort() } })
+      })
+    },
+
+    async endMemberSessions(ctx, memberId, info) {
+      await need(ctx, "endMemberSessions", info)
+      return tx.inWorkspace(ctx.workspaceId, ctx.principalId, async (s) => {
+        const member = await s.memberById(memberId)
+        if (!member) throw new WorkspaceRefusal("not_found")
+        const role = await loadRole(s, member.roleId)
+        if (!covers(ctx.permissions, role.permissions) || (member.isOwner && !ctx.isOwner)) throw new WorkspaceRefusal("forbidden")
+        await s.audit({ ...info, actorRole: actorRole(ctx), action: "membership.sessions_ended", targetType: "membership", targetId: memberId, targetLabel: member.email })
+        return member.userId
       })
     },
 

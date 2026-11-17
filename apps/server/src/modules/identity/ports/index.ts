@@ -53,6 +53,8 @@ export interface SessionRecord {
   revokedAt: Date | null
   /** The workspace the session works in when a path names none (§5.5 step 4). */
   activeWorkspaceId?: string | null
+  /** When the second factor was last given in this session (sign-in or step-up). */
+  secondFactorAt?: Date | null
 }
 
 export interface RefreshRecord {
@@ -63,7 +65,51 @@ export interface RefreshRecord {
   revokedAt: Date | null
 }
 
-export type RevokeReason = "sign_out" | "expired" | "refresh_reuse" | "password_changed" | "admin" | "user" | "account_disabled"
+export type RevokeReason = "sign_out" | "expired" | "refresh_reuse" | "password_changed" | "admin" | "user" | "account_disabled" | "passcode_failed"
+
+// ---- Second factor, sessions list, passcode (B1b step 4) ----
+
+export interface SecondFactorRecord {
+  /** Encrypted with the SecretBox; opened only to check a code. */
+  secretEnc: string
+  enabledAt: Date | null
+  lastStep: number
+}
+
+export interface ChallengeRecord {
+  id: string
+  userId: string
+  realm: Realm
+  attempts: number
+  expiresAt: Date
+  usedAt: Date | null
+}
+
+export interface SessionListItem {
+  id: string
+  createdAt: Date
+  lastActivityAt: Date
+  ip: string | null
+  userAgent: string | null
+}
+
+export interface PasscodeRecord {
+  hash: string
+  failedAttempts: number
+}
+
+/** RFC 6238 codes. `check` returns the step a code belongs to, after `lastStep` only, or null. */
+export interface TotpEngine {
+  newSecret(): string
+  otpauthUrl(secret: string, account: string, issuer?: string): string
+  check(secret: string, code: string, now: Date, lastStep: number): number | null
+}
+
+/** Encryption of stored secrets (SCR-07). */
+export interface SecretBox {
+  seal(plain: string): string
+  open(sealed: string): string
+}
 
 /** An event of the identity trail (IAM-16): no workspace is known yet. The store hashes the e-mail. */
 export interface IdentityEvent {
@@ -99,6 +145,34 @@ export interface IdentityStore {
   refreshTokenByHash(tokenHash: string): Promise<RefreshRecord | null>
   markRefreshTokenReplaced(id: string, replacedBy: string): Promise<void>
   audit(event: IdentityEvent): Promise<void>
+
+  /** Locked until the transaction ends. */
+  secondFactorOf(principalId: string): Promise<SecondFactorRecord | null>
+  /** Replaces a set-up waiting for its first code; never an enabled factor (the caller checks). */
+  saveSecondFactorSetup(principalId: string, secretEnc: string): Promise<void>
+  enableSecondFactor(principalId: string, at: Date, step: number): Promise<void>
+  acceptStep(principalId: string, step: number): Promise<void>
+  deleteSecondFactor(principalId: string): Promise<void>
+  replaceRecoveryCodes(principalId: string, hashes: string[]): Promise<void>
+  /** Marks the code used and answers true when it was unused. */
+  useRecoveryCode(principalId: string, hash: string, at: Date): Promise<boolean>
+  remainingRecoveryCodes(principalId: string): Promise<number>
+  createChallenge(challenge: { id: string; tokenHash: string; userId: string; realm: Realm; expiresAt: Date }, client: { ip: string | null; userAgent: string | null }): Promise<void>
+  /** Locked until the transaction ends. */
+  challengeByHash(tokenHash: string): Promise<ChallengeRecord | null>
+  countChallengeAttempt(id: string): Promise<void>
+  useChallenge(id: string, at: Date): Promise<void>
+  markSecondFactor(sessionId: string, at: Date): Promise<void>
+  openSessions(principalId: string, now: Date): Promise<SessionListItem[]>
+  /** Ends every open session of the principal except `exceptId`; answers how many. */
+  revokeSessionsOf(principalId: string, reason: RevokeReason, exceptId: string | null): Promise<number>
+  /** Locked until the transaction ends. */
+  passcodeOf(userId: string): Promise<PasscodeRecord | null>
+  savePasscode(userId: string, hash: string): Promise<void>
+  deletePasscode(userId: string): Promise<void>
+  setPasscodeFailures(userId: string, failedAttempts: number): Promise<void>
+  /** The session a refresh token belongs to, without using the token. */
+  sessionByRefreshHash(tokenHash: string): Promise<SessionRecord | null>
 }
 
 /** Runs work in one database transaction of the member realm. */
