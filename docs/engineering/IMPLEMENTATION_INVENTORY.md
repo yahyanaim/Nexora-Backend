@@ -1,6 +1,6 @@
 # Nexora: implementation inventory
 
-_The real state of every part of Nexora, from the code, not from the plan. Updated with each phase. Audit of 5 November 2026: Nexora-Saas `fdca5e7`, Nexora-Backend `9d47c35` plus PR #5. Updated 11 November 2026: B1a complete; B1b steps 1 and 2._
+_The real state of every part of Nexora, from the code, not from the plan. Updated with each phase. Audit of 5 November 2026: Nexora-Saas `fdca5e7`, Nexora-Backend `9d47c35` plus PR #5. Updated 18 November 2026: B1a complete; B1b steps 1 to 5._
 
 **Legend:**
 - ✅ built and tested
@@ -16,7 +16,7 @@ _The real state of every part of Nexora, from the code, not from the plan. Updat
 | Configuration (refuses weak production secrets) | ✅ | `apps/server/src/config/config.ts` | ARC-04 | `config.test.ts` |
 | HTTP skeleton: request id, security headers, body limit, health, catalogue errors | ✅ | `src/http/app.ts`, `src/http/errors.ts` | QAL-05, SCR-04, ARC-08 | `app.test.ts`, `error-codes.test.ts` |
 | Error body agreed with the front end | ✅ | `src/http/error-body.ts`; front end `translate-error.ts` reads `values` | ARC-08, ARC-13 | `error-body.test.ts`, front end `translate-error.test.ts` |
-| Session and CSRF contract (realm paths, cookies `nx_m`/`nx_p`/`nx_s`, refresh rotation, `X-XSRF-TOKEN`, edge guard) | 🟡 written, code in B1b | API contract §2; ADR-007 | ARC-07, SCR-16, IAM-01 | — (contract tests ship with the code) |
+| Session and CSRF contract (realm paths, cookies `nx_m`/`nx_p`/`nx_s`, refresh rotation, `X-XSRF-TOKEN`, edge guard) | ✅ member realm in both apps (B1b step 5); portal and console realms with B1e and B1f | API contract §2; ADR-007 | ARC-07, SCR-16, IAM-01 | — (contract tests ship with the code) |
 | Shared rules `packages/core` (125 files, 25 test files), pinned to a web commit | ✅ | `scripts/sync-core.mjs`, `packages/core/SOURCE`, `core-drift.yml` | ARC-01, ARC-03, ARC-12 | 136 core tests; 5 script tests; parity job at the pinned commit; daily drift report |
 | Schemas, group roles, NOINHERIT logins | ✅ | `migrations/0001_foundation.sql` | DAT-01, DAT-02, TEN-10 | `database.test.ts` |
 | Forced RLS, actor and version stamps, composite tenant keys | ✅ | `0001`, `0003`, `0004` | DAT-08–DAT-11, TEN-05 | `database.test.ts` |
@@ -74,7 +74,7 @@ The front-end column counts the API modules in `Nexora-Saas/src/lib/api` (56 in 
 | F8 | Transfer ownership; last-owner message | ⬜ | B1b |
 | F9 | Developer page demo-only | ✅ | B1a |
 | F10 | Missing error keys | ✅ | B1a |
-| F11 | Send `X-XSRF-TOKEN` | ⬜ | B1b |
+| F11 | Send `X-XSRF-TOKEN` | ✅ step 5 | B1b |
 | F12 | The bell reads one notice feed | ⬜ | B1e |
 
 ## 4. Tests
@@ -84,7 +84,7 @@ The front-end column counts the API modules in `Nexora-Saas/src/lib/api` (56 in 
 | Front-end unit and component tests | 143 files, 870 tests | Local and CI |
 | Front-end end to end (Playwright, mock API) | CI job "End-to-end" | CI |
 | Front-end accessibility (axe, console and company pages) | CI job | CI |
-| Back-end server tests | 205 after B1b step 4b, 199 after B1b step 4, 183 after B1b step 3, 163 after B1b step 2, 142 after B1b step 1, 115 after step 6 (99 after step 5, 88 after step 4, 72 after step 1) (database suites on real PostgreSQL 16) | Local with `TEST_DATABASE_ADMIN_URL`; always in CI |
+| Back-end server tests | 211 after B1b step 5 (the B1b gate), 205 after B1b step 4b, 199 after B1b step 4, 183 after B1b step 3, 163 after B1b step 2, 142 after B1b step 1, 115 after step 6 (99 after step 5, 88 after step 4, 72 after step 1) (database suites on real PostgreSQL 16) | Local with `TEST_DATABASE_ADMIN_URL`; always in CI |
 | Back-end script tests (`sync-core.mjs`: pin, drift, refusals) | 5 (step 3) | Local and CI (`npm test`) |
 | Back-end core rule tests | 136 | Local and CI |
 | Contract tests front end ↔ back end | 🟡 error body (same example on both sides); session cookies and `err_csrf` with B1b; module shapes come with each module | Local and CI |
