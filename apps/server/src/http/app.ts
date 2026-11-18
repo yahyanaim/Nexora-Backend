@@ -57,6 +57,17 @@ export function createApp({ config, logger, readiness = [], auth, secondFactor, 
   }
   app.use(requestId, securityHeaders, accessLog(logger), express.json({ limit: "1mb" }))
 
+  // The web application reaches the server through its same-origin proxy (API contract §2, decision D1):
+  // the browser's path starts with COOKIE_PATH_PREFIX (/api), which the proxy may forward as it is.
+  // The prefix is taken off once, so /api/app/v1/… and /app/v1/… reach the same routes.
+  const apiPrefix = config.COOKIE_PATH_PREFIX
+  if (apiPrefix) {
+    app.use((req, _res, next) => {
+      if (req.url === apiPrefix || req.url.startsWith(`${apiPrefix}/`)) req.url = req.url.slice(apiPrefix.length) || "/"
+      next()
+    })
+  }
+
   app.get("/health/live", (_req, res) => {
     res.json({ status: "ok" })
   })
